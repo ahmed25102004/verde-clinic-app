@@ -1,0 +1,60 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="card">
+  <div class="card-header">تسجيل جلسة سريعة</div>
+  <div class="card-body">
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label">رقم العملية (الحجز)</label>
+          <input
+            type="number"
+            class="form-control"
+            name="booking_id"
+            required
+          />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">رقم الموظف</label>
+          {% if session.employee_role == 'manager' %}
+          <input
+            type="number"
+            class="form-control"
+            name="employee_id"
+            required
+          />
+          {% else %}
+          <input
+            type="hidden"
+            name="employee_id"
+            value="{{ session.employee_id }}"
+          />
+          <input
+            type="text"
+            readonly
+            class="form-control"
+            value="{{ session.employee_name }}"
+          />
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">ملاحظة الجلسة</label>
+          <input
+            type="text"
+            class="form-control"
+            name="note"
+            placeholder="ملاحظة (اختياري)"
+          />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button class="btn btn-success" type="submit">
+            تسجيل جلسة اليوم
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

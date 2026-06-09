@@ -1,0 +1,351 @@
+{% extends 'layout.html' %}
+{% block content %}
+<style>
+    :root {
+        --primary-color: #4a90e2;
+        --secondary-color: #f39c12;
+        --bg-color: #f4f7f6;
+        --text-color: #333;
+        --glass-bg: rgba(255, 255, 255, 0.8);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    }
+
+    [data-theme="dark"] {
+        --bg-color: #1a1a1a;
+        --text-color: #f4f7f6;
+        --glass-bg: rgba(0, 0, 0, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --primary-color: #357abd;
+    }
+
+    body {
+        background: var(--bg-color);
+        color: var(--text-color);
+        transition: all 0.3s ease;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .login-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow);
+        width: 100%;
+        max-width: 450px;
+        padding: 40px;
+        position: relative;
+        overflow: hidden;
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .login-header h2 {
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .form-group i {
+        position: absolute;
+        top: 38px;
+        right: 15px;
+        color: var(--primary-color);
+        transition: all 0.3s ease;
+    }
+
+    .form-control {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid transparent;
+        border-radius: 12px;
+        padding: 12px 45px 12px 15px;
+        color: var(--text-color);
+        transition: all 0.3s ease;
+        height: 50px;
+    }
+
+    .form-control:focus {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: var(--primary-color);
+        box-shadow: none;
+        outline: none;
+    }
+
+    .form-control:focus + i {
+        transform: scale(1.1);
+    }
+
+    .btn-login {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 12px;
+        padding: 12px;
+        font-weight: 600;
+        width: 100%;
+        color: white;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-login:hover {
+        background: #357abd;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-login:active {
+        transform: translateY(0);
+    }
+
+    .toggle-password {
+        position: absolute;
+        top: 38px;
+        left: 15px;
+        cursor: pointer;
+        color: #888;
+        transition: color 0.3s;
+    }
+
+    .toggle-password:hover {
+        color: var(--primary-color);
+    }
+
+    .form-footer {
+        margin-top: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+    }
+
+    .form-footer a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .form-footer a:hover {
+        text-decoration: underline;
+    }
+
+    .loader {
+        width: 20px;
+        height: 20px;
+        border: 3px solid #fff;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        display: none;
+        animation: rotation 1s linear infinite;
+        margin-left: 10px;
+    }
+
+    @keyframes rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .error-msg {
+        color: #e74c3c;
+        font-size: 0.85rem;
+        margin-top: 5px;
+        display: none;
+        animation: shake 0.4s ease-in-out;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    .theme-switch {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        color: var(--primary-color);
+        transition: all 0.3s;
+    }
+
+    .theme-switch:hover {
+        transform: rotate(30deg);
+    }
+
+    /* Arabic direction support */
+    [dir="rtl"] .form-group i {
+        right: 15px;
+        left: auto;
+    }
+    [dir="rtl"] .form-control {
+        padding: 12px 45px 12px 15px;
+    }
+    [dir="rtl"] .toggle-password {
+        left: 15px;
+        right: auto;
+    }
+</style>
+
+<div class="login-container">
+    <div class="glass-card">
+        <div class="theme-switch" onclick="toggleTheme()" title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" id="theme-icon"></i>
+        </div>
+
+        <div class="login-header">
+            <h2>تسجيل الدخول</h2>
+            <p class="text-muted">مرحباً بك مجدداً في نظام العيادة</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger py-2 small text-center mb-4" id="server-error">
+            <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" id="loginForm" onsubmit="return handleLogin(event)">
+            <div class="form-group">
+                <label class="form-label fw-bold">ID الموظف</label>
+                <input type="number" class="form-control" name="id" id="empId" placeholder="أدخل رقم التعريف الخاص بك" required autocomplete="username">
+                <i class="fas fa-user-circle"></i>
+                <div class="error-msg" id="id-error">يرجى إدخال رقم ID صحيح</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label fw-bold">كلمة المرور</label>
+                <input type="password" class="form-control" name="password" id="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password">
+                <i class="fas fa-lock"></i>
+                <span class="toggle-password" onclick="togglePasswordVisibility()">
+                    <i class="fas fa-eye" id="eye-icon"></i>
+                </span>
+                <div class="error-msg" id="pwd-error">كلمة المرور مطلوبة</div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="rememberMe">
+                    <label class="form-check-label small" for="rememberMe">تذكرني</label>
+                </div>
+                <a href="#" class="small text-primary text-decoration-none">نسيت كلمة المرور؟</a>
+            </div>
+
+            <button class="btn-login" type="submit" id="loginBtn">
+                <span>دخول</span>
+                <div class="loader" id="loginLoader"></div>
+            </button>
+        </form>
+
+        <div class="form-footer">
+            <span class="text-muted">ليس لديك حساب؟</span>
+            <a href="/signup">إنشاء حساب جديد</a>
+        </div>
+    </div>
+</div>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<script>
+    // Theme Management
+    function toggleTheme() {
+        const body = document.body;
+        const icon = document.getElementById('theme-icon');
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            icon.className = 'fas fa-moon';
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            icon.className = 'fas fa-sun';
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    // Check for saved theme
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-icon').className = 'fas fa-sun';
+        }
+    });
+
+    // Password Visibility Toggle
+    function togglePasswordVisibility() {
+        const pwdInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        if (pwdInput.type === 'password') {
+            pwdInput.type = 'text';
+            eyeIcon.className = 'fas fa-eye-slash';
+        } else {
+            pwdInput.type = 'password';
+            eyeIcon.className = 'fas fa-eye';
+        }
+    }
+
+    // Login Handling
+    function handleLogin(e) {
+        const btn = document.getElementById('loginBtn');
+        const loader = document.getElementById('loginLoader');
+        const idInput = document.getElementById('empId');
+        const pwdInput = document.getElementById('password');
+        const idError = document.getElementById('id-error');
+        const pwdError = document.getElementById('pwd-error');
+
+        let isValid = true;
+
+        // Reset errors
+        idError.style.display = 'none';
+        pwdError.style.display = 'none';
+
+        if (!idInput.value) {
+            idError.style.display = 'block';
+            isValid = false;
+        }
+
+        if (!pwdInput.value) {
+            pwdError.style.display = 'block';
+            isValid = false;
+        }
+
+        if (isValid) {
+            btn.disabled = true;
+            loader.style.display = 'inline-block';
+            btn.querySelector('span').textContent = 'جاري التحميل...';
+            // Form will submit naturally after this
+            return true;
+        }
+
+        e.preventDefault();
+        return false;
+    }
+</script>
+{% endblock %}

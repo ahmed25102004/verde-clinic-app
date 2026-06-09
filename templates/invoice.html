@@ -1,0 +1,222 @@
+{% extends 'layout.html' %} {% block content %}
+<style>
+  @media print {
+    /* إخفاء كل شيء ما عدا صندوق الفاتورة */
+    body * {
+      visibility: hidden;
+    }
+    .invoice-box,
+    .invoice-box * {
+      visibility: visible;
+    }
+    .invoice-box {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 80mm !important;
+      margin: 0 !important;
+      padding: 5mm !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+    body {
+      background: white !important;
+      font-family: "Courier New", Courier, monospace !important;
+      color: black !important;
+      line-height: 1.2 !important;
+    }
+  }
+
+  .invoice-box {
+    background: white;
+    padding: 15px;
+    border: 1px solid #ddd;
+    width: 80mm;
+    margin: 20px auto;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    direction: rtl;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .invoice-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+  }
+
+  .invoice-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 5px 0;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 13px;
+    border-bottom: 1px dotted #eee;
+  }
+
+  .info-label {
+    font-weight: bold;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: bold;
+    background: #f8f9fa;
+    padding: 3px 5px;
+    margin: 10px 0 5px 0;
+    border-right: 3px solid #000;
+  }
+
+  .details-table {
+    width: 100%;
+    font-size: 13px;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+  }
+
+  .details-table th {
+    text-align: right;
+    border-bottom: 1px solid #000;
+    padding: 5px 0;
+  }
+
+  .details-table td {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  .footer-terms {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 2px solid #000;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .footer-terms ul {
+    padding-right: 15px;
+    margin: 5px 0;
+  }
+
+  .total-row {
+    font-size: 15px;
+    font-weight: bold;
+    margin-top: 5px;
+    text-align: left;
+    padding: 5px;
+    background: #eee;
+  }
+</style>
+
+<div class="no-print container text-center mt-3">
+  <button class="btn btn-success btn-lg shadow-sm" onclick="window.print()">
+    <i class="fas fa-print"></i> طباعة الفاتورة (Xprinter)
+  </button>
+  <a
+    href="{{ url_for('customer', id=booking[1]) }}"
+    class="btn btn-secondary btn-lg shadow-sm"
+  >
+    <i class="fas fa-arrow-right"></i> العودة للعميل
+  </a>
+</div>
+
+<div class="invoice-box">
+  <div class="invoice-header">
+    <div class="invoice-title">إيصال دفع</div>
+    <div style="font-size: 12px">رقم الحجز: #{{ booking[0] }}</div>
+  </div>
+
+  <div class="section-title">بيانات العميل</div>
+  <div class="info-row">
+    <span class="info-label">الاسم:</span>
+    <span>{{ booking[9] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">الهاتف:</span>
+    <span>{{ booking[10] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">التاريخ:</span>
+    <span>{{ booking[5] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">الموظف:</span>
+    <span>{{ employee_name or '-' }}</span>
+  </div>
+
+  <div class="section-title">تفاصيل الباقة</div>
+  <div class="info-row">
+    <span class="info-label">اسم الباقة:</span>
+    <span>{{ booking[7] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">السعر:</span>
+    <span>{{ booking[8] }} ج.م</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">عدد الجلسات:</span>
+    <span>{{ booking[3] }}</span>
+  </div>
+
+  {% if emp_detail_list and emp_detail_list|length > 0 %}
+  <div class="section-title">المدفوعات</div>
+  {% for e in emp_detail_list %}
+  <div
+    style="
+      font-size: 13px;
+      margin-bottom: 5px;
+      padding-bottom: 5px;
+      border-bottom: 1px dotted #ccc;
+    "
+  >
+    <strong>{{ e.name }}:</strong>
+    <div style="margin-right: 10px">
+      {% if e.cash %}
+      <div>نقدي: {{ e.cash }} ج.م</div>
+      {% endif %} {% if e.wallet %}
+      <div>محفظة: {{ e.wallet }} ج.م</div>
+      {% endif %} {% if e.instapay %}
+      <div>انستاباي: {{ e.instapay }} ج.م</div>
+      {% endif %}
+    </div>
+    <div style="text-align: left; font-weight: bold">
+      إجمالي: {{ e.paid_total }} ج.م
+    </div>
+  </div>
+  {% endfor %} {% endif %}
+
+  <div class="footer-terms">
+    <strong>شروط الحجز:</strong>
+    <ul>
+      <li>الحجز ٥٠٪ من قيمة الباقة</li>
+      <li>السداد الكامل قبل بدء الخدمة</li>
+      <li>غير قابلة للاستبدال أو الاسترجاع</li>
+      <li>الإيصال هو المرجع الوحيد لأي خلاف مالي</li>
+    </ul>
+  </div>
+
+  <div
+    style="
+      text-align: center;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: bold;
+    "
+  >
+    شكراً لزيارتكم
+  </div>
+</div>
+{% endblock %}

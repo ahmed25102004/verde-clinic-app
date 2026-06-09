@@ -1,0 +1,91 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="card">
+  <div class="card-header">بحث عن عميلة</div>
+  <div class="card-body">
+    {% if not_found %}
+    <div class="alert alert-danger">
+      لم يتم العثور على عميلة بهذا الاسم أو الموبايل
+    </div>
+    {% endif %} {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="get" action="/customer">
+      <div class="row g-3 mb-3">
+        <div class="col-md-10">
+          <div class="input-group">
+            <input
+              id="q_input"
+              type="search"
+              class="form-control"
+              name="q"
+              placeholder="الاسم أو رقم الموبايل"
+              value="{{ request.args.q or request.args.phone or request.args.name or '' }}"
+              autofocus
+            />
+          </div>
+          <div class="form-text">
+            يمكنك البحث بجزء من الاسم أو برقم الموبايل كاملاً.
+          </div>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-primary w-100" type="submit">بحث</button>
+        </div>
+      </div>
+    </form>
+    <script>
+      (function () {
+        const qInput = document.getElementById("q_input");
+        const form = qInput && qInput.closest("form");
+
+        function validateForm() {
+          const v = (qInput.value || "").trim();
+          if (!v) {
+            alert("يرجى إدخال اسم العميل أو رقم الموبايل للبحث");
+            return false;
+          }
+          return true;
+        }
+
+        if (form) {
+          form.addEventListener("submit", function (e) {
+            if (!validateForm()) {
+              e.preventDefault();
+              qInput.focus();
+            }
+          });
+        }
+      })();
+    </script>
+    {% if results %}
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الاسم</th>
+            <th>الهاتف</th>
+            <th>فتح</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in results %}
+          <tr>
+            <td>{{ c['id'] }}</td>
+            <td>{{ c['name'] }}</td>
+            <td>{{ c['phone'] }}</td>
+            <td>
+              <a
+                class="btn btn-sm btn-outline-primary"
+                href="/customer/{{ c['id'] }}"
+                >عرض</a
+              >
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <header class="mb-5">
+    <h1 class="mb-2 fw-bold">اختيار الخدمة</h1>
+    <p class="text-muted mb-0">اختر من الخدمة المناسبة لك من الباقات المتاحة</p>
+  </header>
+
+  <ul class="nav nav-tabs mb-5" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link active"
+        id="cos-sess-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#cos-sess"
+        type="button"
+        role="tab"
+      >
+        <i class="bi bi-sparkles ms-1"></i>
+        جلسات التجميل
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="cos-pack-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#cos-pack"
+        type="button"
+        role="tab"
+      >
+        <i class="bi bi-box-seam ms-1"></i>
+        باكيدجات التجميل
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="laser-sess-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#laser-sess"
+        type="button"
+        role="tab"
+      >
+        <i class="bi bi-lightning ms-1"></i>
+        جلسات الليزر
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="laser-pack-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#laser-pack"
+        type="button"
+        role="tab"
+      >
+        <i class="bi bi-box ms-1"></i>
+        باكيدجات الليزر
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="pulse-pack-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#pulse-pack"
+        type="button"
+        role="tab"
+      >
+        <i class="bi bi-heart-pulse ms-1"></i>
+        باكيدجات النبضات
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="cos-sess" role="tabpanel">
+      <div class="row g-4">
+        {% for p in cosmetic_sessions %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+          <div class="package-card h-100">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <i class="bi bi-sparkles text-warning fs-2"></i>
+              </div>
+              <h5 class="card-title fw-bold mb-3">{{ p[1] }}</h5>
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <span class="price-badge">{{ p[2] }} جنيه</span>
+                <a
+                  class="btn btn-select"
+                  href="{{ url_for('register') }}?package_id={{ p[0] }}"
+                >
+                  <i class="bi bi-check2 ms-1"></i>
+                  اختيار
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="tab-pane fade" id="cos-pack" role="tabpanel">
+      <div class="row g-4">
+        {% for p in cosmetic_packages %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+          <div class="package-card h-100">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <i class="bi bi-box-seam text-info fs-2"></i>
+              </div>
+              <h5 class="card-title fw-bold mb-3">{{ p[1] }}</h5>
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <span class="price-badge">{{ p[2] }} جنيه</span>
+                <a
+                  class="btn btn-select"
+                  href="{{ url_for('register') }}?package_id={{ p[0] }}"
+                >
+                  <i class="bi bi-check2 ms-1"></i>
+                  اختيار
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="tab-pane fade" id="laser-sess" role="tabpanel">
+      <div class="row g-4">
+        {% for p in laser_sessions %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+          <div class="package-card h-100">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <i class="bi bi-lightning text-warning fs-2"></i>
+              </div>
+              <h5 class="card-title fw-bold mb-3">{{ p[1] }}</h5>
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <span class="price-badge">{{ p[2] }} جنيه</span>
+                <a
+                  class="btn btn-select"
+                  href="{{ url_for('register') }}?package_id={{ p[0] }}"
+                >
+                  <i class="bi bi-check2 ms-1"></i>
+                  اختيار
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="tab-pane fade" id="laser-pack" role="tabpanel">
+      <div class="row g-4">
+        {% for p in laser_packages %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+          <div class="package-card h-100">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <i class="bi bi-box text-info fs-2"></i>
+              </div>
+              <h5 class="card-title fw-bold mb-3">{{ p[1] }}</h5>
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <span class="price-badge">{{ p[2] }} جنيه</span>
+                <a
+                  class="btn btn-select"
+                  href="{{ url_for('register') }}?package_id={{ p[0] }}"
+                >
+                  <i class="bi bi-check2 ms-1"></i>
+                  اختيار
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="tab-pane fade" id="pulse-pack" role="tabpanel">
+      <div class="row g-4">
+        {% for p in pulse_packages %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+          <div class="package-card h-100">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <i class="bi bi-heart-pulse text-success fs-2"></i>
+              </div>
+              <h5 class="card-title fw-bold mb-3">{{ p[1] }}</h5>
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <span class="price-badge">{{ p[2] }} جنيه</span>
+                <a
+                  class="btn btn-select"
+                  href="{{ url_for('register') }}?package_id={{ p[0] }}"
+                >
+                  <i class="bi bi-check2 ms-1"></i>
+                  اختيار
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

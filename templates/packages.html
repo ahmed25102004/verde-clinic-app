@@ -1,0 +1,140 @@
+{% extends 'layout.html' %} {% block content %}
+<style>
+  @media print {
+    body {
+      width: 80mm;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+
+    .card {
+      border: none;
+      box-shadow: none;
+      margin: 0;
+    }
+
+    .table {
+      font-size: 11px;
+    }
+
+    .card-header {
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      font-size: 13px;
+      padding: 5px 10px;
+    }
+
+    .card-body {
+      padding: 10px;
+    }
+  }
+</style>
+<div class="card mb-3">
+  <div class="card-header">إضافة باكج/جلسة</div>
+  <div class="card-body">
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <select class="form-select" name="category" required>
+            <option value="">الفئة</option>
+            <option value="cosmetic_sessions">جلسات التجميل</option>
+            <option value="cosmetic_packages">باكيدجات التجميل</option>
+            <option value="laser_sessions">جلسات الليزر</option>
+            <option value="laser_packages">باكيدجات الليزر</option>
+            <option value="pulse_packages">باكيدجات النبضات</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <input
+            type="text"
+            class="form-control"
+            name="name"
+            placeholder="الاسم"
+            required
+          />
+        </div>
+        <div class="col-md-2">
+          <input
+            type="number"
+            class="form-control"
+            name="sessions_count"
+            placeholder="عدد الجلسات"
+            required
+          />
+        </div>
+        <div class="col-md-2">
+          <input
+            type="number"
+            class="form-control"
+            name="price"
+            placeholder="السعر"
+            required
+          />
+        </div>
+        <div class="col-md-2">
+          <input
+            type="text"
+            class="form-control"
+            name="bonus"
+            placeholder="هدية (اختياري)"
+          />
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary" type="submit">إضافة</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">القائمة الحالية</div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الفئة</th>
+            <th>الاسم</th>
+            <th>عدد الجلسات</th>
+            <th>السعر</th>
+            <th>إجراء</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r[0] }}</td>
+            <td>{{ r[1] }}</td>
+            <td>{{ r[2] }}</td>
+            <td>{{ r[3] }}</td>
+            <td>{{ r[4] }}</td>
+            <td>
+              <form method="post" action="/packages/delete">
+                <input type="hidden" name="id" value="{{ r[0] }}" />
+                <button class="btn btn-outline-danger btn-sm" type="submit">
+                  حذف
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

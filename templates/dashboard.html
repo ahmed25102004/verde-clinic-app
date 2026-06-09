@@ -1,0 +1,273 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="container-fluid">
+  <header class="mb-5">
+    <div
+      class="d-flex flex-wrap justify-content-between align-items-center gap-3"
+    >
+      <div>
+        <h1 class="mb-0 fw-bold">لوحة التحكم</h1>
+        <p class="text-muted mb-0 mt-1">
+          مرحباً بك {{ session.employee_name }}! هذه نظرة عامة على العيادة
+        </p>
+      </div>
+      <a href="/export_daily_customers" class="btn btn-primary shadow-sm">
+        <i class="bi bi-file-earmark-excel ms-1"></i>
+        تصدير تقرير اليومي
+      </a>
+    </div>
+  </header>
+
+  {% if insights %}
+  <section class="mb-5">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-lightbulb text-warning fs-4"></i>
+        <h5 class="mb-0">توصيات ذكية</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for insight in insights %}
+          <div class="col-md-4 mb-3">
+            <div class="alert alert-{{ insight.type }} mb-0 shadow-sm">
+              <div
+                class="d-flex justify-content-between align-items-center gap-2"
+              >
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-info-circle"></i>
+                  {{ insight.text }}
+                </div>
+                {% if insight.action == 'whatsapp' %}
+                <a
+                  href="https://api.whatsapp.com/send?phone={{ insight.phone }}&text={{ insight.msg|urlencode }}"
+                  target="_blank"
+                  class="btn btn-sm btn-success"
+                  title="إرسال تذكير واتساب"
+                >
+                  <i class="bi bi-whatsapp"></i>
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="mb-5">
+    <div class="row g-4">
+      <!-- إجمالي الجلسات المنفذة -->
+      <div class="col-md-6 col-lg-3">
+        <div
+          class="stat-card"
+          style="
+            background: linear-gradient(
+              135deg,
+              var(--primary-dark),
+              var(--secondary-dark)
+            );
+          "
+        >
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="stat-value">
+                {{ employee_stats|sum(attribute=1) }}
+              </div>
+              <div class="stat-label">إجمالي الجلسات</div>
+            </div>
+            <i class="bi bi-calendar-check fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <!-- إجمالي الإيرادات -->
+      <div class="col-md-6 col-lg-3">
+        <div
+          class="stat-card"
+          style="
+            background: linear-gradient(135deg, var(--accent-green), #6fa87d);
+          "
+        >
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="stat-value">
+                {{ employee_stats|sum(attribute=2) }} ج.م
+              </div>
+              <div class="stat-label">إجمالي الدخل</div>
+            </div>
+            <i class="bi bi-cash-stack fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <!-- عدد العملاء -->
+      <div class="col-md-6 col-lg-3">
+        <div
+          class="stat-card"
+          style="
+            background: linear-gradient(135deg, var(--accent-gold), #c98a00);
+          "
+        >
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="stat-value" id="customersCount">--</div>
+              <div class="stat-label">عدد العملاء</div>
+            </div>
+            <i class="bi bi-people fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <!-- عدد الحجوزات النشطة -->
+      <div class="col-md-6 col-lg-3">
+        <div
+          class="stat-card"
+          style="
+            background: linear-gradient(135deg, var(--accent-cyan), #4db8bb);
+          "
+        >
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="stat-value" id="bookingsCount">--</div>
+              <div class="stat-label">حجوزات نشطة</div>
+            </div>
+            <i class="bi bi-calendar-event fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row g-4">
+    <!-- دخل المركز آخر 7 أيام -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center gap-2">
+          <i class="bi bi-graph-up text-primary"></i>
+          <h5 class="mb-0">دخل المركز (آخر 7 أيام)</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>المبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for day in last_7_days %}
+                <tr>
+                  <td>
+                    <i class="bi bi-calendar ms-1 text-muted"></i> {{ day.date
+                    }}
+                  </td>
+                  <td class="fw-bold text-success">{{ day.amount }} ج.م</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- أداء الفريق -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center gap-2">
+          <i class="bi bi-people text-primary"></i>
+          <h5 class="mb-0">أداء الفريق</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>الموظف</th>
+                  <th>جلسات</th>
+                  <th>دخل</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for emp in employee_stats %}
+                <tr>
+                  <td>
+                    <i class="bi bi-person-circle ms-1 text-muted"></i> {{
+                    emp[0] }}
+                  </td>
+                  <td class="fw-bold">{{ emp[1] }}</td>
+                  <td class="fw-bold text-success">{{ emp[2] }} ج.م</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- الخدمات الأكثر طلباً -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center gap-2">
+          <i class="bi bi-box-seam text-primary"></i>
+          <h5 class="mb-0">الباكدجات الأكثر طلباً</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>الخدمة/الباكدج</th>
+                  <th>عدد الحجوزات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for pkg in top_packages %}
+                <tr>
+                  <td>{{ pkg[0] }}</td>
+                  <td><span class="badge bg-primary">{{ pkg[1] }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- أفضل العملاء -->
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center gap-2">
+          <i class="bi bi-person-heart text-primary"></i>
+          <h5 class="mb-0">أفضل العملاء</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>العميل</th>
+                  <th>إجمالي المدفوع</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cust in top_customers %}
+                <tr>
+                  <td>
+                    <i class="bi bi-person-circle ms-1 text-muted"></i> {{
+                    cust[0] }}
+                  </td>
+                  <td class="fw-bold text-success">{{ cust[1] }} ج.م</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header">إنشاء حساب موظف</div>
+      <div class="card-body">
+        {% if error %}
+          <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">ID الموظف</label>
+            <input type="number" class="form-control" name="id" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">اسم الموظف</label>
+            <input type="text" class="form-control" name="name" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">كلمة المرور</label>
+            <input id="pwd1" type="password" class="form-control" name="password" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">تأكيد كلمة المرور</label>
+            <input id="pwd2" type="password" class="form-control" name="password_confirm" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">الدور</label>
+            {% if allow_manager and (not session.employee_role or session.employee_role != 'manager') %}
+              <select class="form-select" disabled>
+                <option value="employee" selected>موظف</option>
+                <option value="manager">مدير</option>
+              </select>
+              <input type="hidden" name="role" value="employee" />
+            {% else %}
+              <select class="form-select" name="role">
+                <option value="employee" selected>موظف</option>
+                <option value="manager">مدير</option>
+              </select>
+            {% endif %}
+          </div>
+          <button class="btn btn-primary" type="submit">إنشاء</button>
+        </form>
+        <div id="pwd_feedback" class="mt-2 text-danger d-none">كلمتا المرور غير متطابقتين أو قصيرة جدًا (8 أحرف على الأقل)</div>
+        <script>
+          (function(){
+            const p1 = document.getElementById('pwd1');
+            const p2 = document.getElementById('pwd2');
+            const submit = document.querySelector('form button[type="submit"]');
+            const fb = document.getElementById('pwd_feedback');
+            function validate(){
+              const v1 = p1.value || '';
+              const v2 = p2.value || '';
+              const ok = v1.length >= 8 && v1 === v2;
+              if(!ok){
+                fb.classList.remove('d-none');
+                submit.disabled = true;
+              } else {
+                fb.classList.add('d-none');
+                submit.disabled = false;
+              }
+            }
+            p1.addEventListener('input', validate);
+            p2.addEventListener('input', validate);
+            // initial check
+            validate();
+          })();
+        </script>
+        {% if allow_manager and (not session.employee_role or session.employee_role != 'manager') %}
+          <div class="mt-3 text-muted">
+            لإنشاء حساب مدير، يجب أن يقوم بذلك حساب مدير مسجّل الدخول.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="alert alert-info">
+      إذا كانت هذه أول مرة تستخدم النظام ولا توجد حسابات، يمكنك إنشاء أول حساب (بما في ذلك المدير).
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,126 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="card">
+  <div class="card-header">تسجيل عميلة</div>
+  <div class="card-body">
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <div class="alert alert-info">
+      الباكج: {{ pkg[1] }} | السعر: {{ pkg[2] }} | عدد الجلسات: {{ pkg[3] }}
+    </div>
+    <form method="post">
+      <input type="hidden" name="package_id" value="{{ pkg[0] }}" />
+      <div class="mb-3">
+        <label class="form-label">الموظف</label>
+        {% if session.employee_role == 'manager' %}
+        <select class="form-select" name="employee_id" required>
+          <option value="">اختر الموظف</option>
+          {% for e in employees %}
+          <option value="{{ e[0] }}">{{ e[1] }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input type="hidden" name="employee_id" value="{{ session.employee_id }}" />
+        <input type="text" readonly class="form-control" value="{{ session.employee_name }}" />
+        {% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label">اسم العميلة</label>
+        <input type="text" class="form-control" name="name" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">رقم الهاتف</label>
+        <input id="phone_input" type="tel" class="form-control" name="phone" />
+        <div id="phone_feedback" class="form-text text-danger d-none"></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">ملاحظات</label>
+        <textarea class="form-control" name="note"></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">ملاحظات طبية</label>
+        <textarea class="form-control" name="medical_notes" rows="3"></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">الحساسية</label>
+        <input type="text" class="form-control" name="allergies">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">التفضيلات</label>
+        <input type="text" class="form-control" name="preferences">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">الحالات الطبية</label>
+        <input type="text" class="form-control" name="medical_conditions">
+      </div>
+      <div class="form-check mb-3">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          name="first_today"
+          id="first_today"
+          checked
+        />
+        <label class="form-check-label" for="first_today"
+          >تنفيذ أول جلسة اليوم</label
+        >
+      </div>
+      {% if pkg_category == 'pulse_packages' %}
+      <div class="mb-3">
+        <label class="form-label">إجمالي النبضات المشتراة</label>
+        <input type="number" class="form-control" name="pulses_total" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">عدد النبضات المستخدمة في الجلسة الأولى (إن وجدت)</label>
+        <input type="number" class="form-control" name="first_pulses" />
+      </div>
+      {% endif %}
+      <button id="register_submit" class="btn btn-primary" type="submit">حفظ</button>
+    </form>
+  </div>
+</div>
+<script>
+  (function(){
+    const phoneInput = document.getElementById('phone_input');
+    const feedback = document.getElementById('phone_feedback');
+    const submitBtn = document.getElementById('register_submit');
+    let timeout = null;
+    function setState(msg){
+      if(msg){
+        feedback.textContent = msg;
+        feedback.classList.remove('d-none');
+        submitBtn.disabled = true;
+      } else {
+        feedback.textContent = '';
+        feedback.classList.add('d-none');
+        submitBtn.disabled = false;
+      }
+    }
+    function checkPhone(){
+      const v = phoneInput.value.trim();
+      if(!v){ setState(false); return; }
+      // client-side format validation: must be 11 digits
+      if(!/^\d{11}$/.test(v)){
+        setState('رقم الموبايل يجب أن يكون 11 رقمًا');
+        return;
+      }
+      fetch('/check_phone?phone=' + encodeURIComponent(v)).then(r=>{
+        return r.json().then(j=>({status: r.status, body: j}));
+      }).then(obj=>{
+        if(obj.status !== 200){
+          setState(obj.body && obj.body.error ? obj.body.error : 'خطأ في التحقق');
+        } else if(obj.body.exists){
+          setState('رقم الهاتف مستخدم بالفعل');
+        } else {
+          setState(false);
+        }
+      }).catch(()=>{ setState(false); });
+    }
+    phoneInput.addEventListener('input', function(){
+      clearTimeout(timeout);
+      timeout = setTimeout(checkPhone, 400);
+    });
+    phoneInput.addEventListener('blur', checkPhone);
+  })();
+</script>
+{% endblock %}
