@@ -1,0 +1,37 @@
+
+# Python and Docker specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+.venv
+.env
+env/
+venv/
+ENV/
+Accounts/
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker and IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+*.bak
+*.swp
+*~
