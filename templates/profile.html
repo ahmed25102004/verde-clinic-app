@@ -1,0 +1,84 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- معلومات الموظف وإحصائياته -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center text-white shadow" style="width: 80px; height: 80px; font-size: 2rem;">
+                            {{ employee[1][0] }}
+                        </div>
+                    </div>
+                    <h4 class="card-title mb-1">{{ employee[1] }}</h4>
+                    <p class="text-muted small mb-3">
+                        <span class="badge bg-info text-dark">
+                            {% if employee[2] == 'manager' %}مدير النظام{% else %}موظف / تقني{% endif %}
+                        </span>
+                    </p>
+                    <hr>
+                    <div class="text-start">
+                        <p class="mb-2"><strong>المعرف (ID):</strong> {{ employee[0] }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-bold">إحصائيات الأداء</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small d-block">إجمالي الجلسات المنفذة</label>
+                        <span class="fs-4 fw-bold text-primary">{{ sessions_count }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small d-block">إجمالي المبالغ المحصلة</label>
+                        <span class="fs-4 fw-bold text-success">{{ total_collected }} ج.م</span>
+                    </div>
+                    <hr>
+                    <div class="mb-2">
+                        <label class="text-muted small d-block">جلسات آخر 30 يوم</label>
+                        <span class="fw-bold">{{ sessions_month }}</span>
+                    </div>
+                    <div>
+                        <label class="text-muted small d-block">تحصيل آخر 30 يوم</label>
+                        <span class="fw-bold text-success">{{ collected_month }} ج.م</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تغيير كلمة المرور -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-bold">إعدادات الحساب - تغيير كلمة المرور</div>
+                <div class="card-body">
+                    <form method="post" action="/profile">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">كلمة المرور الحالية</label>
+                            <input type="password" name="current_password" class="form-control" required>
+                        </div>
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">كلمة المرور الجديدة</label>
+                            <input type="password" name="new_password" class="form-control" required minlength="8">
+                            <div class="form-text small text-muted">يجب أن تكون 8 أحرف على الأقل.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">تأكيد كلمة المرور الجديدة</label>
+                            <input type="password" name="confirm_password" class="form-control" required minlength="8">
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary px-4">حفظ كلمة المرور الجديدة</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-3 bg-light border rounded small text-muted">
+                <i class="info-circle me-1"></i>
+                ملاحظة: تساعدك الإحصائيات أعلاه على تتبع أدائك الشخصي في المركز خلال الفترة الماضية.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

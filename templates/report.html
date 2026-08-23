@@ -1,0 +1,139 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="card mb-3">
+  <div class="card-header">تقرير مخصص حسب الفترة</div>
+  <div class="card-body">
+    <form class="row g-2" method="get" action="/report">
+      <div class="col-auto">
+        <label class="form-label">من تاريخ</label>
+        <input
+          type="date"
+          class="form-control"
+          name="start_date"
+          value="{{ start_date }}"
+        />
+      </div>
+      <div class="col-auto">
+        <label class="form-label">إلى تاريخ</label>
+        <input
+          type="date"
+          class="form-control"
+          name="end_date"
+          value="{{ end_date }}"
+        />
+      </div>
+      <div class="col-auto d-flex align-items-end">
+        <button class="btn btn-primary" type="submit">عرض التقرير</button>
+      </div>
+      <div class="col-auto d-flex align-items-end">
+        <a
+          class="btn btn-success"
+          href="/report_export?start_date={{ start_date }}&end_date={{ end_date }}"
+          >تصدير إكسل</a
+        >
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">
+    ملخص الفترة ({{ start_date }} إلى {{ end_date }})
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <div class="fw-bold">إجمالي المدفوع اليوم</div>
+          <div class="fs-5">{{ summary.payments_total }}</div>
+          <div class="text-muted">
+            عدد العمليات: {{ summary.payments_count }}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <div class="fw-bold">تسجيلات اليوم</div>
+          <div>القيمة: {{ summary.bookings_value_today }}</div>
+          <div>المدفوع عليها: {{ summary.bookings_paid_sum }}</div>
+          <div class="fs-6">الباقي: {{ summary.bookings_remaining }}</div>
+          <div class="text-muted">
+            عدد التسجيلات: {{ summary.bookings_count_today }}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <div class="fw-bold">طرق الدفع اليوم</div>
+          {% for m in summary.payments_by_method %}
+          <div>
+            {% if m[0]=='cash' %}نقدي{% elif m[0]=='wallet' %}محفظة{% elif
+            m[0]=='instapay' %}انستا باي{% else %}{{ m[0] }}{% endif %}: {{ m[1]
+            }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <div class="fw-bold">إضافات</div>
+          <div>عملاء دفعوا اليوم: {{ summary.unique_payers }}</div>
+          <div>جلسات منفذة اليوم: {{ summary.sessions_count_today }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="row g-3 mt-2">
+      <div class="col-md-4">
+        <div class="border rounded p-3">
+          <div class="fw-bold">تسجيلات لها مدفوعات اليوم</div>
+          <div>القيمة: {{ summary.bookings_value_touched_today }}</div>
+          <div class="fs-6">
+            الباقي (إجمالي): {{ summary.bookings_remaining_touched_today }}
+          </div>
+          <div class="text-muted">
+            عدد التسجيلات: {{ summary.bookings_count_touched_today }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>الموظف</th>
+            <th>عدد التسجيلات</th>
+            <th>قيمة التسجيلات</th>
+            <th>المصاريف</th>
+            <th>نقدي</th>
+            <th>محفظة</th>
+            <th>انستا باي</th>
+            <th>الإجمالي قبل الخصم</th>
+            <th>الإجمالي بعد الخصم</th>
+            <th>عدد الجلسات المنفذة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.employee }}</td>
+            <td>{{ r.bookings_count }}</td>
+            <td>{{ r.bookings_value }}</td>
+            <td>{{ r.expenses }}</td>
+            <td>{{ r.cash }}</td>
+            <td>{{ r.wallet }}</td>
+            <td>{{ r.instapay }}</td>
+            <td>{{ r.total_payments }}</td>
+            <td>{{ r.total_for_manager }}</td>
+            <td>{{ r.sessions_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

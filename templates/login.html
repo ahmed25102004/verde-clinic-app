@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-center py-5" style="min-height: 75vh;">
+  <div class="card border-0 shadow-lg p-4 p-md-5 rounded-4" style="max-width: 440px; width: 100%; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+    <div class="text-center mb-4">
+      <div class="sidebar-brand-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.8rem;">
+        <i class="bi bi-sparkles"></i>
+      </div>
+      <h3 class="fw-bold text-white mb-1">تسجيل الدخول</h3>
+      <p class="text-muted small">نظام إدارة عيادة فيردي التجميلية</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger py-2 px-3 small text-center mb-4">
+      <i class="bi bi-exclamation-circle-fill me-1"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('employee.login') }}">
+      <div class="mb-3">
+        <label class="form-label text-secondary fw-semibold">ID الموظف</label>
+        <div class="input-group">
+          <span class="input-group-text border-secondary bg-dark text-muted"><i class="bi bi-person"></i></span>
+          <input type="number" class="form-control" name="id" placeholder="أدخل رقم ID الخاص بك" required autocomplete="username">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-secondary fw-semibold">كلمة المرور</label>
+        <div class="input-group">
+          <span class="input-group-text border-secondary bg-dark text-muted"><i class="bi bi-lock"></i></span>
+          <input type="password" class="form-control" name="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold shadow-sm mb-3">
+        تسجيل الدخول <i class="bi bi-arrow-left ms-1"></i>
+      </button>
+
+      {% if allow_public_signup %}
+      <div class="text-center text-muted small mt-3">
+        ليس لديك حساب؟ <a href="{{ url_for('employee.signup') }}" class="text-primary text-decoration-none fw-bold">إنشاء حساب مدير جديد</a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}

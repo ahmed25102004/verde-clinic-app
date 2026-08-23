@@ -1,0 +1,473 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="card mb-3">
+  <div class="card-header">بيانات العميلة</div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4"><strong>رقم:</strong> {{ customer[0] }}</div>
+      <div class="col-md-4"><strong>الاسم:</strong> {{ customer[1] }}</div>
+      <div class="col-md-4"><strong>الهاتف:</strong> {{ customer[2] }}</div>
+    </div>
+    <div class="mt-2"><strong>ملاحظات:</strong> {{ customer[3] }}</div>
+    <div class="mt-2"><strong>تاريخ الإنشاء:</strong> {{ customer[4] }}</div>
+    <div class="mt-3">
+      <button class="btn btn-outline-info btn-sm" data-bs-toggle="collapse" data-bs-target="#medicalHistoryCollapse">
+        عرض/تعديل التاريخ الطبي
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="collapse mb-3" id="medicalHistoryCollapse">
+  <div class="card">
+    <div class="card-header">التاريخ الطبي للعميلة</div>
+    <div class="card-body">
+      <form method="post" action="/customer/{{ customer[0] }}/update_medical">
+        <div class="mb-3">
+          <label class="form-label">ملاحظات طبية</label>
+          <textarea class="form-control" name="medical_notes" rows="3">{{ customer_dict['medical_notes'] or '' }}</textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">الحساسية</label>
+          <input type="text" class="form-control" name="allergies" value="{{ customer_dict['allergies'] or '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">التفضيلات</label>
+          <input type="text" class="form-control" name="preferences" value="{{ customer_dict['preferences'] or '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">الحالات الطبية</label>
+          <input type="text" class="form-control" name="medical_conditions" value="{{ customer_dict['medical_conditions'] or '' }}">
+        </div>
+        <button type="submit" class="btn btn-primary">حفظ التحديثات</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if (customer_dict['medical_notes'] or customer_dict['allergies'] or customer_dict['medical_conditions']) %}
+<div class="alert alert-warning mb-3" role="alert">
+  <strong>تنبيه!</strong> هذه العميلة لديها بيانات طبية مسجلة. يرجى مراجعتها قبل البدء في الجلسة.
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">الحجوزات</div>
+  <div class="card-body">
+    <div class="mb-2">
+      <a
+        class="btn btn-outline-primary btn-sm"
+        href="/export_customer/{{ customer[0] }}"
+        >تصدير إكسل لبيانات العميل</a
+      >
+    </div>
+    {% if bookings|length == 0 %} لا توجد حجوزات {% else %}
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>الحجز</th>
+            <th>الباكج</th>
+            <th>السعر</th>
+            <th>المدفوع</th>
+            <th>المتبقي</th>
+            <th>الجلسات</th>
+            <th>المنفذة</th>
+            <th>المتبقية</th>
+            <th>موعد الجلسة القادمة</th>
+            <th>النبضات (المتبقية)</th>
+            <th>تواريخ الجلسات</th>
+            <th>إجراء</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bookings %}
+          <tr>
+            <td>#{{ b['id'] }}</td>
+            <td>{{ b['package_name'] }}</td>
+            <td>{{ b['package_price'] }} جنيه</td>
+            <td>
+              {{ paid_map[b['id']] or 0 }} جنيه {% if payments_map and
+              payments_map.get(b['id']) %}
+              <div class="mt-1">
+                {% for p in payments_map.get(b['id']) %}
+                <span class="badge bg-info text-dark me-1"
+                  >{{ p[0] }} جنيه — {% if p[1]=='cash' %}نقدي{% elif
+                  p[1]=='wallet' %}محفظة{% elif p[1]=='instapay' %}انستا باي{%
+                  else %}{{ p[1] }}{% endif %} — {{ p[2] }}{% if p[3] %} — {{
+                  p[3] }}{% endif %}</span
+                >
+                {% endfor %}
+              </div>
+              {% endif %}
+            </td>
+            <td>{{ b['package_price'] - (paid_map[b['id']] or 0) }} جنيه</td>
+            <td>{{ b['total_sessions'] }}</td>
+            <td>{{ b['sessions_done'] }}</td>
+            <td>{{ b['total_sessions'] - b['sessions_done'] }}</td>
+            <td>
+              <form
+                method="post"
+                action="/bookings/{{ b['id'] }}/update_next_session"
+                class="d-flex gap-1 align-items-center"
+              >
+                <input
+                  type="date"
+                  name="next_session_date"
+                  class="form-control form-control-sm"
+                  value="{{ b['next_session_date'] or '' }}"
+                  onchange="this.form.submit()"
+                />
+                {% if b['next_session_date'] %}
+                <a
+                  href="https://api.whatsapp.com/send?phone={{ customer[2]|whatsapp_phone }}&text={{ ('مرحباً ' + customer[1] + '، نذكرك بموعد جلستك القادمة (' + b['package_name'] + ') يوم ' + b['next_session_date'] + ' في مركزنا. ننتظرك بكل حب.')|urlencode }}"
+                  target="_blank"
+                  class="btn btn-sm btn-success"
+                  title="تذكير واتساب"
+                >
+                  <i class="fab fa-whatsapp"></i>
+                </a>
+                {% endif %}
+              </form>
+            </td>
+            <td>
+              {% if b['pulses_total'] and b['pulses_total'] > 0 %} {% if
+              session.employee_role == 'manager' %} إجمالي: {{ b['pulses_total']
+              }}<br />مستخدم: {{ b['pulses_used'] }}<br />متبقي: {{
+              b['pulses_total'] - b['pulses_used'] }} {% else %} {{
+              b['pulses_total'] - b['pulses_used'] }} نبضة متبقية {% endif %} {%
+              else %} - {% endif %}
+            </td>
+            <td>
+              {% for s in sessions_map[b['id']] %}
+              <div class="mb-1">
+                <span class="badge bg-secondary"
+                  >جلسة {{ s['session_number'] }}: {{ s['date'] }}{% if
+                  s['employee_name'] %} — {{ s['employee_name'] }}{% endif %}{%
+                  if s['pulses_used'] %} - {{ s['pulses_used'] }} نبضة{% endif
+                  %}{% if s['note'] %} — {{ s['note'] }}{% endif %}</span
+                >
+                {% if session.employee_role == 'manager' %}
+                <form
+                  method="post"
+                  action="/sessions/{{ s['id'] }}/update_note"
+                  class="d-inline-block ms-2"
+                >
+                  <input
+                    type="text"
+                    name="note"
+                    class="form-control form-control-sm d-inline-block"
+                    style="max-width: 200px"
+                    placeholder="تعديل الملاحظة"
+                    value="{{ s['note'] or '' }}"
+                  />
+                  <button class="btn btn-outline-primary btn-sm" type="submit">
+                    حفظ
+                  </button>
+                </form>
+                <form
+                  method="post"
+                  action="/sessions/{{ s['id'] }}/delete"
+                  class="d-inline-block ms-1"
+                  onsubmit="return confirm('حذف الجلسة؟');"
+                >
+                  <button class="btn btn-outline-danger btn-sm" type="submit">
+                    حذف
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </td>
+            <td>
+              {% if b['pulses_total'] and b['pulses_total'] > 0 %}
+              <button
+                class="btn btn-success btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#sessionModal_{{ b['id'] }}"
+              >
+                تسجيل جلسة اليوم
+              </button>
+              {% else %} {% if b['sessions_done'] < b['total_sessions'] %}
+              <button
+                class="btn btn-success btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#sessionModal_{{ b['id'] }}"
+              >
+                تسجيل جلسة اليوم
+              </button>
+              {% else %} مكتمل {% endif %} {% endif %}
+              <div class="mt-2 d-flex gap-2">
+                <a
+                  class="btn btn-outline-secondary btn-sm"
+                  href="/invoice/{{ b['id'] }}"
+                  target="_blank"
+                  >طباعة فاتورة</a
+                >
+                <a
+                  class="btn btn-outline-secondary btn-sm"
+                  href="/export_booking_invoice/{{ b['id'] }}"
+                  >تصدير فاتورة إكسل</a
+                >
+                {% if session.employee_role == 'manager' %}
+                <form
+                  method="post"
+                  action="/bookings/{{ b['id'] }}/delete"
+                  onsubmit="return confirm('حذف الباكج وكل جلساته ومدفوعاته؟');"
+                >
+                  <button class="btn btn-outline-danger btn-sm" type="submit">
+                    حذف الباكج
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+              <div class="mt-2">
+                <button
+                  class="btn btn-primary btn-sm"
+                  data-bs-toggle="modal"
+                  data-bs-target="#paymentModal_{{ b['id'] }}"
+                >
+                  تسجيل دفع
+                </button>
+              </div>
+            </td>
+          </tr>
+          <div
+            class="modal fade"
+            id="paymentModal_{{ b['id'] }}"
+            tabindex="-1"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">تسجيل دفع للحجز #{{ b['id'] }}</h5>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                  ></button>
+                </div>
+                <form method="post" action="/bookings/{{ b['id'] }}/pay">
+                  <div class="modal-body">
+                    <div class="mb-3 text-center">
+                      <span class="badge bg-warning text-dark fs-6"
+                        >المبلغ المتبقي: {{ b['package_price'] -
+                        (paid_map[b['id']] or 0) }} جنيه</span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">المبلغ</label>
+                      <input
+                        type="number"
+                        name="amount"
+                        class="form-control"
+                        max="{{ b['package_price'] - (paid_map[b['id']] or 0) }}"
+                        min="1"
+                        required
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">طريقة الدفع</label>
+                      <select name="method" class="form-select" required>
+                        <option value="">اختر</option>
+                        <option value="cash">نقدي</option>
+                        <option value="wallet">محفظة</option>
+                        <option value="instapay">إنستا باي</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      data-bs-dismiss="modal"
+                    >
+                      إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div
+            class="modal fade"
+            id="sessionModal_{{ b['id'] }}"
+            tabindex="-1"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">تسجيل جلسة للحجز #{{ b['id'] }}</h5>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                  ></button>
+                </div>
+                <form
+                  method="post"
+                  action="/bookings/{{ b['id'] }}/add_session"
+                >
+                  <div class="modal-body">
+                    {% if session.employee_role == 'manager' %}
+                    <div class="mb-3">
+                      <label class="form-label">الموظف</label>
+                      <select class="form-select" name="employee_id" required>
+                        <option value="">اختر</option>
+                        {% for e in employees %}
+                        <option value="{{ e[0] }}">{{ e[1] }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    {% else %}
+                    <input
+                      type="hidden"
+                      name="employee_id"
+                      value="{{ session.employee_id }}"
+                    />
+                    <div class="mb-3">
+                      <label class="form-label">الموظف</label>
+                      <input
+                        class="form-control"
+                        readonly
+                        value="{{ session.employee_name }}"
+                      />
+                    </div>
+                    {% endif %} {% if b['pulses_total'] and b['pulses_total'] >
+                    0 %}
+                    <div class="mb-3">
+                      <label class="form-label">نبضات مستخدمة</label>
+                      <input
+                        type="number"
+                        name="pulses_used"
+                        class="form-control"
+                        required
+                      />
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                      <label class="form-label">ملاحظة</label>
+                      <input type="text" name="note" class="form-control" />
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      data-bs-dismiss="modal"
+                    >
+                      إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-success">حفظ</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    <hr />
+    <h6>إضافة باكج جديد للعميلة</h6>
+    <button
+      class="btn btn-success btn-sm"
+      type="button"
+      data-bs-toggle="modal"
+      data-bs-target="#addPackageModal"
+    >
+      إضافة باكج
+    </button>
+    <div
+      class="modal fade"
+      id="addPackageModal"
+      tabindex="-1"
+      aria-hidden="true"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">إضافة باكج جديد</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <form method="post" action="/customer/{{ customer[0] }}/add_booking">
+            <div class="modal-body">
+              <div class="row g-2">
+                {% if session.employee_role == 'manager' %}
+                <div class="col-md-4">
+                  <label class="form-label">الموظف</label>
+                  <select class="form-select" name="employee_id" required>
+                    <option value="">اختر</option>
+                    {% for e in employees %}
+                    <option value="{{ e[0] }}">{{ e[1] }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                {% else %}
+                <input
+                  type="hidden"
+                  name="employee_id"
+                  value="{{ session.employee_id }}"
+                />
+                <div class="col-md-4">
+                  <label class="form-label">الموظف</label>
+                  <input
+                    class="form-control"
+                    readonly
+                    value="{{ session.employee_name }}"
+                  />
+                </div>
+                {% endif %}
+                <div class="col-md-8">
+                  <label class="form-label">الباكج</label>
+                  <select class="form-select" name="package_id" required>
+                    <option value="">اختر الباكج</option>
+                    {% for p in all_packages %}
+                    <option value="{{ p['id'] }}">
+                      {{ p['name'] }} ({{ p['price'] }})
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label"
+                    >إجمالي النبضات (للباقات النبضية فقط)</label
+                  >
+                  <input
+                    type="number"
+                    name="pulses_total"
+                    class="form-control"
+                    placeholder="أدخل العدد إن كانت باقة نبضات"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                class="btn btn-secondary"
+                type="button"
+                data-bs-dismiss="modal"
+              >
+                إغلاق
+              </button>
+              <button class="btn btn-primary" type="submit">إضافة</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

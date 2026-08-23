@@ -1,0 +1,190 @@
+{% extends 'layout.html' %} 
+{% block content %}
+<style>
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .invoice-box,
+    .invoice-box * {
+      visibility: visible;
+    }
+    .invoice-box {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 80mm !important;
+      margin: 0 !important;
+      padding: 5mm !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: white !important;
+      color: black !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+    body {
+      background: white !important;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
+      color: black !important;
+    }
+  }
+
+  .invoice-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    max-width: 480px;
+    margin: 20px auto;
+    color: var(--text-primary);
+    direction: rtl;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .invoice-header {
+    text-align: center;
+    border-bottom: 2px solid var(--accent-indigo);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+  }
+
+  .invoice-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-white);
+    margin-bottom: 4px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .info-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    background: var(--bg-input);
+    color: var(--accent-indigo);
+    padding: 6px 12px;
+    margin: 15px 0 10px 0;
+    border-radius: var(--radius-sm);
+    border-right: 4px solid var(--accent-indigo);
+  }
+
+  .footer-terms {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .footer-terms ul {
+    padding-right: 18px;
+    margin: 6px 0;
+  }
+</style>
+
+<div class="no-print container text-center mb-4">
+  <div class="d-flex justify-content-center gap-2">
+    <button class="btn btn-success px-4 py-2 shadow-sm" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i> طباعة الفاتورة (Xprinter)
+    </button>
+    <a href="{{ url_for('customer_detail', customer_id=booking[1]) }}" class="btn btn-outline-light px-4 py-2 shadow-sm">
+      <i class="bi bi-arrow-right me-1"></i> العودة لملف العميل
+    </a>
+  </div>
+</div>
+
+<div class="invoice-box">
+  <div class="invoice-header">
+    <div class="invoice-title">مركز فيردي للتجميل</div>
+    <div class="small text-muted">إيصال حجز وجلسات - رقم الحجز: #{{ booking[0] }}</div>
+  </div>
+
+  <div class="section-title">بيانات العميلة</div>
+  <div class="info-row">
+    <span class="info-label">الاسم:</span>
+    <span class="fw-bold text-white">{{ booking[9] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">الهاتف:</span>
+    <span>{{ booking[10] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">التاريخ:</span>
+    <span>{{ booking[5] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">الموظف المسئول:</span>
+    <span>{{ emp_name or employee_name or '-' }}</span>
+  </div>
+
+  <div class="section-title">تفاصيل الباكدج</div>
+  <div class="info-row">
+    <span class="info-label">اسم الباقة:</span>
+    <span class="fw-bold text-info">{{ booking[7] }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">السعر المستحق:</span>
+    <span class="fw-bold text-success">{{ booking[8] }} ج.م</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">إجمالي الجلسات:</span>
+    <span>{{ booking[3] }} جلسات</span>
+  </div>
+
+  {% if emp_detail_list and emp_detail_list|length > 0 %}
+  <div class="section-title">المدفوعات والتحصيلات</div>
+  {% for e in emp_detail_list %}
+  <div class="p-2 mb-2 rounded-2" style="background-color: var(--bg-input); font-size: 13px;">
+    <div class="fw-bold text-white mb-1">{{ e.name }}:</div>
+    <div class="pe-2 text-muted">
+      {% if e.cash %}
+      <div>نقدي: <strong class="text-success">{{ e.cash }} ج.م</strong></div>
+      {% endif %}
+      {% if e.wallet %}
+      <div>محفظة: <strong class="text-info">{{ e.wallet }} ج.م</strong></div>
+      {% endif %}
+      {% if e.instapay %}
+      <div>انستاباي: <strong class="text-primary">{{ e.instapay }} ج.م</strong></div>
+      {% endif %}
+    </div>
+    <div class="text-end fw-bold text-success mt-1 pt-1 border-top border-secondary" style="font-size: 0.85rem;">
+      إجمالي المحصل: {{ e.paid_total }} ج.م
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="footer-terms">
+    <strong class="text-white">شروط وأحكام الحجز:</strong>
+    <ul>
+      <li>الحجز ٥٠٪ من قيمة الباقة الأساسية.</li>
+      <li>السداد الكامل للمبلغ قبل بدء الجلسة.</li>
+      <li>الباقات غير قابلة للاستبدال أو الاسترجاع.</li>
+      <li>هذا الإيصال هو المرجع الوحيد لأي مراجعة مالية.</li>
+    </ul>
+  </div>
+
+  <div class="text-center mt-3 pt-2 border-top border-secondary text-muted small fw-bold">
+    شكراً لزيارتكم مركز فيردي للتجميل ✨
+  </div>
+</div>
+{% endblock %}

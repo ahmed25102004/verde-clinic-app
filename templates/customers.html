@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}{% block content %}
+<div class="card">
+  <div class="card-header">👥 العملاء</div>
+  <div class="card-body">
+    {% if rows|length == 0 %} لا توجد بيانات عملاء {% else %}
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الاسم</th>
+            <th>الهاتف</th>
+            <th>الملاحظات</th>
+            <th>تاريخ الإنشاء</th>
+            <th>عدد الحجوزات</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in rows %}
+          <tr>
+            <td>{{ c[0] }}</td>
+            <td>{{ c[1] }}</td>
+            <td>{{ c[2] }}</td>
+            <td>{{ c[3] }}</td>
+            <td>{{ c[4] }}</td>
+            <td>{{ c[5] }}</td>
+            <td class="d-flex gap-2">
+              <a
+                class="btn btn-sm btn-outline-primary"
+                href="/customer/{{ c[0] }}"
+                >عرض</a
+              >
+              <a
+                class="btn btn-sm btn-outline-secondary"
+                href="/export_customer/{{ c[0] }}"
+                >تصدير إكسل</a
+              >
+              {% if session.employee_role == 'manager' %}
+              <form
+                method="post"
+                action="/customers/{{ c[0] }}/delete"
+                onsubmit="return confirm('حذف العميل وكل حجوزاته وجلساته ومدفوعاته نهائيًا؟');"
+              >
+                <button class="btn btn-sm btn-outline-danger" type="submit">
+                  حذف نهائي
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  <div class="card-footer">
+    <form class="d-flex" role="search" action="/customer" method="get">
+      <input
+        class="form-control me-2"
+        type="search"
+        name="q"
+        placeholder="بحث بالاسم أو الموبايل"
+        value="{{ request.args.q or '' }}"
+      />
+      <button class="btn btn-primary" type="submit">بحث</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

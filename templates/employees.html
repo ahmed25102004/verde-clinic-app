@@ -1,0 +1,151 @@
+{% extends 'layout.html' %} 
+{% block content %}
+<div class="container-fluid py-2">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h2 class="fw-bold text-white mb-1">إدارة فريق الموظفين والمصرح لهم</h2>
+      <p class="text-muted mb-0">إضافة موظفين جدد، إدارة الصلاحيات، وحسابات الدخول للنظام</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Add Employee Form -->
+    <div class="col-lg-5">
+      {% if session.employee_role == 'manager' %}
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3">
+          <h5 class="fw-bold mb-0 text-white">
+            <i class="bi bi-person-plus-fill text-primary me-2"></i> إضافة موظف / أخصائية جديدة
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          {% if error %}
+          <div class="alert alert-danger py-2 px-3 small mb-4">
+            <i class="bi bi-exclamation-circle-fill me-1"></i> {{ error }}
+          </div>
+          {% endif %}
+
+          <form method="post" action="{{ url_for('employee.employees') }}">
+            <div class="mb-3">
+              <label class="form-label text-secondary fw-semibold">اسم الموظف / الأخصائية</label>
+              <input type="text" class="form-control" name="name" placeholder="مثال: د. مريم أحمد" required />
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label text-secondary fw-semibold">رقم ID للدخول</label>
+                <input type="number" class="form-control" name="id" placeholder="مثال: 105" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label text-secondary fw-semibold">الصلاحية</label>
+                <select class="form-select" name="role" required>
+                  <option value="employee">موظف / أخصائية</option>
+                  <option value="manager">مدير النظام</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label text-secondary fw-semibold">كلمة المرور</label>
+              <input type="password" class="form-control" name="password" placeholder="أدخل كلمة المرور" required />
+            </div>
+
+            <button class="btn btn-primary w-100 py-2.5 fw-bold shadow-sm" type="submit">
+              <i class="bi bi-check-circle me-1"></i> حفظ وإضافة الموظف
+            </button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-body p-4 text-center py-5 text-muted">
+          <i class="bi bi-shield-lock fs-1 text-warning d-block mb-3"></i>
+          <h5 class="fw-bold text-white">إضافة الموظفين مقتصرة على مدير النظام</h5>
+          <p class="small mb-0">يمكنك فقط استعراض قائمة الموظفين في العيادة.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Employee List -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0 text-white">
+            <i class="bi bi-people-fill text-info me-2"></i> قائمة الموظفين المسجلين
+          </h5>
+          <span class="badge bg-primary fs-7">{{ employees|length }} موظف</span>
+        </div>
+        <div class="card-body p-4">
+          <div class="list-group list-group-flush gap-2">
+            {% for e in employees %}
+            <div class="list-group-item p-3 rounded-3 border border-secondary shadow-sm">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="user-avatar" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                    {{ (e[1] or 'M')[0] }}
+                  </div>
+                  <div>
+                    <h6 class="fw-bold text-white mb-1">{{ e[1] }}</h6>
+                    <div class="d-flex align-items-center gap-2">
+                      {% if e[2] == 'manager' %}
+                      <span class="badge bg-warning">مدير النظام</span>
+                      {% else %}
+                      <span class="badge bg-info">موظف عيادة</span>
+                      {% endif %}
+                      <span class="text-muted small">ID: #{{ e[0] }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {% if session.employee_id and session.employee_id == e[0] %}
+                  <form method="post" action="/employees/delete" onsubmit="return confirmSelfDelete(this)" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="id" value="{{ e[0] }}" />
+                    <input type="number" name="confirm_id" class="form-control form-control-sm" style="width: 80px;" placeholder="ID" required />
+                    <input type="password" name="confirm_password" class="form-control form-control-sm" style="width: 100px;" placeholder="كلمة السر" required />
+                    <button class="btn btn-outline-danger btn-sm text-nowrap" type="submit">
+                      <i class="bi bi-trash"></i> حذف حسابي
+                    </button>
+                  </form>
+                  {% else %}
+                  {% if session.employee_role == 'manager' %}
+                  <form method="post" action="/employees/delete">
+                    <input type="hidden" name="id" value="{{ e[0] }}" />
+                    <button class="btn btn-outline-danger btn-sm" type="submit" onclick="return confirm('هل أنت متأكد من حذف هذا الموظف؟');">
+                      <i class="bi bi-trash me-1"></i> حذف
+                    </button>
+                  </form>
+                  {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function confirmSelfDelete(form) {
+    try {
+      const hiddenId = form.querySelector('input[name="id"]').value;
+      const confirmId = form.querySelector('input[name="confirm_id"]').value;
+      if (String(hiddenId) !== String(confirmId)) {
+        alert("معرف التأكيد لا يطابق. يرجى إدخال الـ ID الصحيح.");
+        return false;
+      }
+      if (!confirm("هل أنت متأكد أنك تريد حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.")) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+</script>
+{% endblock %}

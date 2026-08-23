@@ -1,0 +1,30 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">مصادقة لتقرير يومي</div>
+      <div class="card-body">
+        {% if error %}
+          <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">ID الموظف</label>
+            <input type="number" class="form-control" name="id" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">كلمة المرور</label>
+            <input type="password" class="form-control" name="password" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">تاريخ التقرير (اختياري بعد المصادقة)</label>
+            <input type="date" class="form-control" name="date" />
+          </div>
+          <button class="btn btn-primary" type="submit">عرض التقرير</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
