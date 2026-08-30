@@ -78,6 +78,7 @@ def whatsapp_background_agent():
                         WHERE b.next_session_date = ? AND b.reminder_sent = 0
                     ''', (tomorrow,))
                     reminders = cur.fetchall()
+                    conn.close()
 
                     for rid, cname, cphone, pname in reminders:
                         formatted_phone = whatsapp_phone_filter(cphone)
@@ -89,7 +90,7 @@ def whatsapp_background_agent():
                             if instance_id and "instance" in instance_id:
                                 url = f"https://api.ultramsg.com/{instance_id}/messages/chat"
                                 payload = {"token": api_token, "to": formatted_phone, "body": msg}
-                                response = requests.post(url, data=payload, timeout=10)
+                                response = requests.post(url, data=payload, timeout=5)
                                 if response.status_code == 200:
                                     res_json = response.json()
                                     if res_json.get('sent') == 'true' or res_json.get('id'):
@@ -101,7 +102,7 @@ def whatsapp_background_agent():
                             elif instance_id:
                                 status_url = f"https://api.green-api.com/waInstance{instance_id}/getStateInstance/{api_token}"
                                 try:
-                                    status_resp = requests.get(status_url, timeout=5)
+                                    status_resp = requests.get(status_url, timeout=3)
                                     if status_resp.status_code == 200:
                                         state = status_resp.json().get('stateInstance')
                                         if state != 'authorized':
@@ -113,7 +114,7 @@ def whatsapp_background_agent():
 
                                 url = f"https://api.green-api.com/waInstance{instance_id}/sendMessage/{api_token}"
                                 payload = {"chatId": f"{formatted_phone}@c.us", "message": msg}
-                                response = requests.post(url, json=payload, timeout=10)
+                                response = requests.post(url, json=payload, timeout=5)
                                 if response.status_code == 200:
                                     res_json = response.json()
                                     if res_json.get('idMessage'):
@@ -123,21 +124,29 @@ def whatsapp_background_agent():
                                 else:
                                     error_msg = f"Green-API HTTP Error: {response.status_code}"
 
+                            upd_conn = get_conn()
+                            upd_cur = upd_conn.cursor()
                             if success:
-                                cur.execute("UPDATE bookings SET reminder_sent = 1 WHERE id = ?", (rid,))
-                                cur.execute("INSERT INTO notifications (message, type) VALUES (?, ?)",
+                                upd_cur.execute("UPDATE bookings SET reminder_sent = 1 WHERE id = ?", (rid,))
+                                upd_cur.execute("INSERT INTO notifications (message, type) VALUES (?, ?)",
                                             (f"تم إرسال تذكير لـ {cname} ({formatted_phone})", "success"))
                             else:
-                                cur.execute("INSERT INTO notifications (message, type) VALUES (?, ?)",
+                                upd_cur.execute("INSERT INTO notifications (message, type) VALUES (?, ?)",
                                             (f"فشل إرسال تذكير لـ {cname} ({formatted_phone}): {error_msg[:100]}", "danger"))
-                            conn.commit()
-                            time.sleep(3)
+                            upd_conn.commit()
+                            upd_conn.close()
+                            time.sleep(1)
                         except Exception as e:
                             print(f"Error sending WhatsApp to {cphone}: {e}")
-                            cur.execute("INSERT INTO notifications (message, type) VALUES (?, ?)",
-                                        (f"خطأ تقني في إرسال تذكير لـ {cname}: {str(e)[:100]}", "danger"))
-                            conn.commit()
-                    conn.close()
+                            try:
+                                upd_conn = get_conn()
+                                upd_cur = upd_conn.cursor()
+                                upd_cur.execute("INSERT INTO notifications (message, type) VALUES (?, ?)",
+                                            (f"خطأ تقني في إرسال تذكير لـ {cname}: {str(e)[:100]}", "danger"))
+                                upd_conn.commit()
+                                upd_conn.close()
+                            except Exception:
+                                pass
         except Exception as e:
             print(f"Background Agent Error: {e}")
         time.sleep(3600)
