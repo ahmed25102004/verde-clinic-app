@@ -1,84 +1,134 @@
-{% extends 'layout.html' %} {% block content %}
-<div class="card">
-  <div class="card-header">تسجيل عميلة</div>
-  <div class="card-body">
-    {% if error %}
-      <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-    <div class="alert alert-info">
-      الباكج: {{ pkg[1] }} | السعر: {{ pkg[2] }} | عدد الجلسات: {{ pkg[3] }}
+{% extends 'layout.html' %} 
+{% block content %}
+<div class="container-fluid py-2">
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-person-plus-fill text-primary fs-4"></i>
+        <h4 class="fw-bold mb-0 text-white">تسجيل عميلة جديدة وتحرير الحجز</h4>
+      </div>
+      <span class="badge bg-primary px-3 py-2 fs-7">{{ pkg[1] }}</span>
     </div>
-    <form method="post">
-      <input type="hidden" name="package_id" value="{{ pkg[0] }}" />
-      <div class="mb-3">
-        <label class="form-label">الموظف</label>
-        {% if session.employee_role == 'manager' %}
-        <select class="form-select" name="employee_id" required>
-          <option value="">اختر الموظف</option>
-          {% for e in employees %}
-          <option value="{{ e[0] }}">{{ e[1] }}</option>
-          {% endfor %}
-        </select>
-        {% else %}
-        <input type="hidden" name="employee_id" value="{{ session.employee_id }}" />
-        <input type="text" readonly class="form-control" value="{{ session.employee_name }}" />
-        {% endif %}
-      </div>
-      <div class="mb-3">
-        <label class="form-label">اسم العميلة</label>
-        <input type="text" class="form-control" name="name" required />
-      </div>
-      <div class="mb-3">
-        <label class="form-label">رقم الهاتف</label>
-        <input id="phone_input" type="tel" class="form-control" name="phone" />
-        <div id="phone_feedback" class="form-text text-danger d-none"></div>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">ملاحظات</label>
-        <textarea class="form-control" name="note"></textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">ملاحظات طبية</label>
-        <textarea class="form-control" name="medical_notes" rows="3"></textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">الحساسية</label>
-        <input type="text" class="form-control" name="allergies">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">التفضيلات</label>
-        <input type="text" class="form-control" name="preferences">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">الحالات الطبية</label>
-        <input type="text" class="form-control" name="medical_conditions">
-      </div>
-      <div class="form-check mb-3">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          name="first_today"
-          id="first_today"
-          checked
-        />
-        <label class="form-check-label" for="first_today"
-          >تنفيذ أول جلسة اليوم</label
-        >
-      </div>
-      {% if pkg_category == 'pulse_packages' %}
-      <div class="mb-3">
-        <label class="form-label">إجمالي النبضات المشتراة</label>
-        <input type="number" class="form-control" name="pulses_total" required />
-      </div>
-      <div class="mb-3">
-        <label class="form-label">عدد النبضات المستخدمة في الجلسة الأولى (إن وجدت)</label>
-        <input type="number" class="form-control" name="first_pulses" />
+
+    <div class="card-body p-4">
+      {% if error %}
+      <div class="alert alert-danger py-2 px-3 small mb-4">
+        <i class="bi bi-exclamation-circle-fill me-1"></i> {{ error }}
       </div>
       {% endif %}
-      <button id="register_submit" class="btn btn-primary" type="submit">حفظ</button>
-    </form>
+
+      <div class="p-3 mb-4 rounded-3 border border-secondary" style="background-color: var(--bg-input);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <span class="text-muted small">الباكدج المختار:</span>
+            <strong class="text-white ms-2">{{ pkg[1] }}</strong>
+          </div>
+          <div>
+            <span class="text-muted small">السعر الأساسي:</span>
+            <strong class="text-success ms-2">{{ pkg[2] }} ج.م</strong>
+          </div>
+          <div>
+            <span class="text-muted small">عدد الجلسات:</span>
+            <strong class="text-info ms-2">{{ pkg[3] }} جلسات</strong>
+          </div>
+        </div>
+      </div>
+
+      <form method="post">
+        <input type="hidden" name="package_id" value="{{ pkg[0] }}" />
+
+        <!-- 2 Columns Grid Layout -->
+        <div class="row g-3">
+          <!-- Row 1: Employee & Customer Name -->
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">الموظف المسئول</label>
+            {% if session.employee_role == 'manager' %}
+            <select class="form-select" name="employee_id" required>
+              <option value="">اختر الموظف...</option>
+              {% for e in employees %}
+              <option value="{{ e[0] }}">{{ e[1] }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <input type="hidden" name="employee_id" value="{{ session.employee_id }}" />
+            <input type="text" readonly class="form-control" value="{{ session.employee_name }}" />
+            {% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">اسم العميلة <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" placeholder="أدخل اسم العميلة الرباعي" required />
+          </div>
+
+          <!-- Row 2: Phone & General Notes -->
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">رقم الهاتف <span class="text-danger">*</span></label>
+            <input id="phone_input" type="tel" class="form-control" name="phone" placeholder="مثال: 01012345678" />
+            <div id="phone_feedback" class="form-text text-danger d-none mt-1"></div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">ملاحظات عامة</label>
+            <input type="text" class="form-control" name="note" placeholder="ملاحظات الحجز أو الدفعات..." />
+          </div>
+
+          <!-- Row 3: Medical Notes & Allergies -->
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">ملاحظات طبية</label>
+            <input type="text" class="form-control" name="medical_notes" placeholder="ملاحظات التاريخ الطبي للبشرة..." />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">الحساسية</label>
+            <input type="text" class="form-control" name="allergies" placeholder="أنواع الحساسية إن وجدت..." />
+          </div>
+
+          <!-- Row 4: Preferences & Medical Conditions -->
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">التفضيلات الخاصة</label>
+            <input type="text" class="form-control" name="preferences" placeholder="التفضيلات ومواعيد الجلسات..." />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">الحالات الطبية الاستثنائية</label>
+            <input type="text" class="form-control" name="medical_conditions" placeholder="حمل، أمراض جيبية، إلخ..." />
+          </div>
+
+          <!-- Row 5: Pulse Packages (If Pulse Package) -->
+          {% if pkg_category == 'pulse_packages' %}
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">إجمالي النبضات المشتراة</label>
+            <input type="number" class="form-control" name="pulses_total" placeholder="مثال: 500" required />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label text-secondary fw-semibold">نبضات الجلسة الأولى (إن وجدت)</label>
+            <input type="number" class="form-control" name="first_pulses" placeholder="مثال: 50" />
+          </div>
+          {% endif %}
+
+          <!-- Options & Submit Row -->
+          <div class="col-12 mt-4 pt-3 border-top border-secondary d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="first_today" id="first_today" checked />
+              <label class="form-check-label text-white fw-medium" for="first_today">
+                <i class="bi bi-calendar2-check text-success me-1"></i> تنفيذ أول جلسة اليوم وتأكيد الدخول
+              </label>
+            </div>
+
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('index') }}" class="btn btn-outline-light px-4">إلغاء</a>
+              <button id="register_submit" class="btn btn-primary px-5 fw-bold shadow-sm" type="submit">
+                <i class="bi bi-check-lg me-1"></i> حفظ وتأكيد الحجز
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
+
 <script>
   (function(){
     const phoneInput = document.getElementById('phone_input');
@@ -99,7 +149,6 @@
     function checkPhone(){
       const v = phoneInput.value.trim();
       if(!v){ setState(false); return; }
-      // client-side format validation: must be 11 digits
       if(!/^\d{11}$/.test(v)){
         setState('رقم الموبايل يجب أن يكون 11 رقمًا');
         return;
