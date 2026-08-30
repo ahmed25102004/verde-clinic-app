@@ -122,63 +122,67 @@ def login():
         except (TypeError, ValueError):
             error = "ID غير صالح"
         else:
-            ip = request.remote_addr or 'unknown'
-            conn = get_conn()
-            cur = conn.cursor()
-            cur.execute('SELECT attempts,last_attempt FROM auth_failures WHERE ip=?', (ip,))
-            af = cur.fetchone()
-            locked = False
-            if af:
-                try:
-                    last = datetime.fromisoformat(af[1])
-                except Exception:
-                    last = datetime.now()
-                if af[0] >= 5 and (datetime.now() - last).total_seconds() < 15 * 60:
-                    locked = True
-            if locked:
-                error = 'محظور مؤقتًا بعد محاولات فاشلة، حاول بعد قليل'
-            else:
-                cur.execute("SELECT id,name,password_hash,role FROM employees WHERE id=?", (emp_id,))
-                row = cur.fetchone()
-                if not row or not row[2] or not check_password_hash(row[2], pwd or ""):
-                    error = "بيانات تسجيل الدخول غير صحيحة"
-                    now_s = datetime.now().isoformat()
+            try:
+                ip = request.remote_addr or 'unknown'
+                conn = get_conn()
+                cur = conn.cursor()
+                cur.execute('SELECT attempts,last_attempt FROM auth_failures WHERE ip=?', (ip,))
+                af = cur.fetchone()
+                locked = False
+                if af:
                     try:
-                        cur.execute('INSERT INTO auth_failures(ip,attempts,last_attempt) VALUES(?,?,?)', (ip, 1, now_s))
+                        last = datetime.fromisoformat(af[1])
                     except Exception:
-                        cur.execute('UPDATE auth_failures SET attempts=attempts+1,last_attempt=? WHERE ip=?', (now_s, ip))
-                    cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', (emp_id, ip, 'login', 0, datetime.now().isoformat()))
-                    conn.commit()
+                        last = datetime.now()
+                    if af[0] >= 5 and (datetime.now() - last).total_seconds() < 15 * 60:
+                        locked = True
+                if locked:
+                    error = 'محظور مؤقتًا بعد محاولات فاشلة، حاول بعد قليل'
                 else:
-                    cur.execute('DELETE FROM auth_failures WHERE ip=?', (ip,))
-                    session["employee_id"] = row[0]
-                    session["employee_name"] = row[1]
-                    session["employee_role"] = row[3] or "employee"
-                    
-                    if session["employee_role"] == "manager":
-                        today_str = datetime.now().strftime('%Y-%m-%d')
-                        backup_file = os.path.join(BACKUPS_DIR, f"verde_clinic_backup_{today_str}.db")
-                        if not os.path.exists(backup_file):
+                    cur.execute("SELECT id,name,password_hash,role FROM employees WHERE id=?", (emp_id,))
+                    row = cur.fetchone()
+                    if not row or not row[2] or not check_password_hash(row[2], pwd or ""):
+                        error = "بيانات تسجيل الدخول غير صحيحة"
+                        now_s = datetime.now().isoformat()
+                        try:
+                            cur.execute('INSERT INTO auth_failures(ip,attempts,last_attempt) VALUES(?,?,?)', (ip, 1, now_s))
+                        except Exception:
                             try:
-                                os.makedirs(BACKUPS_DIR, exist_ok=True)
-                                shutil.copy2(DB_PATH, backup_file)
-                                for f in os.listdir(BACKUPS_DIR):
-                                    f_path = os.path.join(BACKUPS_DIR, f)
-                                    if os.path.isfile(f_path):
-                                        f_date_str = f.replace('verde_clinic_backup_', '').replace('.db', '')
-                                        try:
-                                            f_date = datetime.strptime(f_date_str, '%Y-%m-%d')
-                                            if (datetime.now() - f_date).days > 7:
-                                                os.remove(f_path)
-                                        except: pass
+                                cur.execute('UPDATE auth_failures SET attempts=attempts+1,last_attempt=? WHERE ip=?', (now_s, ip))
                             except Exception: pass
+                        try:
+                            cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', (emp_id, ip, 'login', 0, datetime.now().isoformat()))
+                            conn.commit()
+                        except Exception: pass
+                    else:
+                        try:
+                            cur.execute('DELETE FROM auth_failures WHERE ip=?', (ip,))
+                        except Exception: pass
+                        
+                        session["employee_id"] = row[0]
+                        session["employee_name"] = row[1]
+                        session["employee_role"] = row[3] or "employee"
+                        
+                        if session["employee_role"] == "manager":
+                            today_str = datetime.now().strftime('%Y-%m-%d')
+                            backup_file = os.path.join(BACKUPS_DIR, f"zara_clinic_backup_{today_str}.db")
+                            if not os.path.exists(backup_file):
+                                try:
+                                    os.makedirs(BACKUPS_DIR, exist_ok=True)
+                                    shutil.copy2(DB_PATH, backup_file)
+                                except Exception: pass
 
-                    cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', (row[0], ip, 'login', 1, datetime.now().isoformat()))
-                    conn.commit()
-                    conn.close()
-                    return redirect(next_url)
-            conn.commit()
-            conn.close()
+                        try:
+                            cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', (row[0], ip, 'login', 1, datetime.now().isoformat()))
+                            conn.commit()
+                        except Exception: pass
+                        conn.close()
+                        return redirect(next_url)
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"Login error: {e}")
+                error = "بيانات تسجيل الدخول غير صحيحة أو هناك خطأ في النظام"
     return render_template("login.html", error=error)
 
 @employee_bp.route("/logout")
