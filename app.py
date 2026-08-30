@@ -31,7 +31,7 @@ app = Flask(__name__)
 # Secret key configuration with persistent fallback
 secret_key = os.environ.get("POS_SECRET")
 if not secret_key:
-    secret_key = "verde_clinic_secure_persistent_secret_key_2026"
+    secret_key = "zara_beauty_clinic_secure_persistent_secret_key_2026"
 app.secret_key = secret_key
 
 app.config.update(

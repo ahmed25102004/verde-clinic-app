@@ -1,4 +1,4 @@
-# Verde Beauty Clinic Management System
+# Zara Beauty Clinic Management System
 
 A full-featured management system for aesthetic clinics, built with Flask and SQLite!
 
