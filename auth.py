@@ -21,7 +21,10 @@ def manager_required(f):
         if not session.get("employee_id"):
             return redirect(get_login_url())
         if session.get("employee_role") != "manager":
-            return ("Unauthorized Access", 401)
+            try:
+                return redirect(url_for("index"))
+            except Exception:
+                return redirect("/")
         return f(*args, **kwargs)
     return wrapper
 
