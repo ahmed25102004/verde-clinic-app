@@ -162,15 +162,6 @@ def login():
                         session["employee_id"] = row[0]
                         session["employee_name"] = row[1]
                         session["employee_role"] = row[3] or "employee"
-                        
-                        if session["employee_role"] == "manager":
-                            today_str = datetime.now().strftime('%Y-%m-%d')
-                            backup_file = os.path.join(BACKUPS_DIR, f"zara_clinic_backup_{today_str}.db")
-                            if not os.path.exists(backup_file):
-                                try:
-                                    os.makedirs(BACKUPS_DIR, exist_ok=True)
-                                    shutil.copy2(DB_PATH, backup_file)
-                                except Exception: pass
 
                         try:
                             cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', (row[0], ip, 'login', 1, datetime.now().isoformat()))

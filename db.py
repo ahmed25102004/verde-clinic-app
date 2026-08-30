@@ -12,8 +12,7 @@ BACKUPS_DIR = os.path.join(os.path.dirname(__file__), "backups")
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH, timeout=30)
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn = sqlite3.connect(DB_PATH, timeout=20.0)
     conn.execute("PRAGMA foreign_keys=ON")
     conn.row_factory = sqlite3.Row
     return conn
@@ -21,6 +20,11 @@ def get_conn():
 
 def init_db():
     conn = get_conn()
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+    except Exception:
+        pass
     cur = conn.cursor()
 
     # Create tables if not exist
