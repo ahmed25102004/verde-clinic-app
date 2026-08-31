@@ -261,20 +261,37 @@ def packages_admin():
     conn.close()
     return render_template("packages.html", rows=rows, error=error)
 
-@report_bp.route("/packages/delete", methods=["POST"])
+@report_bp.route("/packages/delete", methods=["GET", "POST"])
 @manager_required
 def packages_delete():
+    if request.method == "GET":
+        return redirect(url_for("report.packages_admin"))
+        
     pid = request.form.get("id")
+    error = None
     try:
         p = int(pid)
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM bookings WHERE package_id=?", (p,))
+        b_count = cur.fetchone()[0]
+        if b_count > 0:
+            error = "لا يمكن حذف هذا الباكدج لأنه مرتبط بحجوزات وتدفقات مالية قائمة للعملاء"
+        else:
+            cur.execute("DELETE FROM packages WHERE id=?", (p,))
+            conn.commit()
+        conn.close()
     except (TypeError, ValueError):
-        return redirect(url_for("report.packages_admin"))
+        error = "معرف الباكدج غير صالح"
+    except Exception as e:
+        error = f"خطأ عند الحذف: {str(e)}"
+        
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("DELETE FROM packages WHERE id=?", (p,))
-    conn.commit()
+    cur.execute("SELECT id,category,name,sessions_count,price FROM packages ORDER BY id DESC")
+    rows = cur.fetchall()
     conn.close()
-    return redirect(url_for("report.packages_admin"))
+    return render_template("packages.html", rows=rows, error=error)
 
 @report_bp.route("/export")
 @manager_required
