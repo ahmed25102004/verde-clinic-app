@@ -9,6 +9,7 @@ load_dotenv()
 from db import get_conn
 
 conn = get_conn()
+cur = conn.cursor()
 
 # Create a default manager if not exists
 manager_id = 1  # You can change this to any ID you want
