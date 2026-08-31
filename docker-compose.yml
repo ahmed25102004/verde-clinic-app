@@ -3,11 +3,11 @@ services:
     build: .
     container_name: verde_clinic_app
     ports:
-      - "5007:5007"
+      - "8089:5007"
     env_file:
       - .env
     volumes:
-      - ./verde_clinic.db:/app/verde_clinic.db
+      - ./data:/app/data
       - ./backups:/app/backups
       - ./exports:/app/exports
     restart: unless-stopped

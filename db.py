@@ -6,9 +6,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "verde_clinic.db")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 EXPORTS_DIR = os.path.join(os.path.dirname(__file__), "exports")
 BACKUPS_DIR = os.path.join(os.path.dirname(__file__), "backups")
+
+root_db = os.path.join(os.path.dirname(__file__), "verde_clinic.db")
+data_db = os.path.join(DATA_DIR, "verde_clinic.db")
+
+if os.path.isfile(root_db):
+    DB_PATH = root_db
+else:
+    DB_PATH = data_db
 
 
 def get_conn():

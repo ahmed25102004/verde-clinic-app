@@ -6,10 +6,9 @@ from werkzeug.security import generate_password_hash
 
 load_dotenv()
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "verde_clinic.db")
+from db import get_conn
 
-conn = sqlite3.connect(DB_PATH)
-cur = conn.cursor()
+conn = get_conn()
 
 # Create a default manager if not exists
 manager_id = 1  # You can change this to any ID you want
