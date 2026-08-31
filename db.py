@@ -79,9 +79,15 @@ def init_db():
         name TEXT NOT NULL,
         sessions_count INTEGER NOT NULL,
         price INTEGER NOT NULL,
-        bonus TEXT
+        bonus TEXT,
+        is_active INTEGER DEFAULT 1
     )
     """)
+    
+    try:
+        cur.execute("ALTER TABLE packages ADD COLUMN is_active INTEGER DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS bookings (

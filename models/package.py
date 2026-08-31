@@ -8,13 +8,13 @@ class Package(BaseModel):
 
     @classmethod
     def find_by_category(cls, category: str) -> List[Dict[str, Any]]:
-        query = "SELECT * FROM packages WHERE category = ?"
+        query = "SELECT * FROM packages WHERE category = ? AND (is_active = 1 OR is_active IS NULL)"
         rows = cls.execute_query(query, (category,), fetch=True)
         return [cls._row_to_dict(row) for row in rows] if rows else []
 
     @classmethod
     def find_all_with_category(cls) -> List[Dict[str, Any]]:
-        query = "SELECT id, category, name, sessions_count, price, bonus FROM packages"
+        query = "SELECT id, category, name, sessions_count, price, bonus FROM packages WHERE (is_active = 1 OR is_active IS NULL)"
         rows = cls.execute_query(query, fetch=True)
         packages = []
         for row in rows:

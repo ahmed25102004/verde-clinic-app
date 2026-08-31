@@ -256,7 +256,7 @@ def packages_admin():
                 conn.commit()
         except ValueError:
             error = "القيم الرقمية غير صحيحة"
-    cur.execute("SELECT id,category,name,sessions_count,price FROM packages ORDER BY id DESC")
+    cur.execute("SELECT id,category,name,sessions_count,price FROM packages WHERE (is_active = 1 OR is_active IS NULL) ORDER BY id DESC")
     rows = cur.fetchall()
     conn.close()
     return render_template("packages.html", rows=rows, error=error)
@@ -273,14 +273,11 @@ def packages_delete():
         p = int(pid)
         conn = get_conn()
         cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM bookings WHERE package_id=?", (p,))
-        b_count = cur.fetchone()[0]
-        if b_count > 0:
-            error = "لا يمكن حذف هذا الباكدج لأنه مرتبط بحجوزات وتدفقات مالية قائمة للعملاء"
-        else:
-            cur.execute("DELETE FROM packages WHERE id=?", (p,))
-            conn.commit()
+        cur.execute("UPDATE packages SET is_active = 0 WHERE id = ?", (p,))
+        conn.commit()
         conn.close()
+        flash("تم حذف الباكدج بنجاح من قائمة الإتاحة، مع الاحتفاظ ببيانات العملاء المشتركين بها سابقاً", "success")
+        return redirect(url_for("report.packages_admin"))
     except (TypeError, ValueError):
         error = "معرف الباكدج غير صالح"
     except Exception as e:
@@ -288,7 +285,7 @@ def packages_delete():
         
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT id,category,name,sessions_count,price FROM packages ORDER BY id DESC")
+    cur.execute("SELECT id,category,name,sessions_count,price FROM packages WHERE (is_active = 1 OR is_active IS NULL) ORDER BY id DESC")
     rows = cur.fetchall()
     conn.close()
     return render_template("packages.html", rows=rows, error=error)

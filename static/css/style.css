@@ -84,6 +84,10 @@ body {
   justify-content: space-between;
   z-index: 1040;
   transition: var(--transition);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-header {
