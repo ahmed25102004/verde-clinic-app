@@ -1,4 +1,4 @@
-# Zara Beauty Clinic Management System
+# La Verde Beauty Clinic Al Masala Management System
 
 A full-featured management system for aesthetic clinics, built with Flask and SQLite!
 
