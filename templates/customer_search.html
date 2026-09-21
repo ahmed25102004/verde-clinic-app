@@ -2,9 +2,15 @@
 <div class="card">
   <div class="card-header">بحث عن عميلة</div>
   <div class="card-body">
-    {% if not_found %}
-    <div class="alert alert-danger">
-      لم يتم العثور على عميلة بهذا الاسم أو الموبايل
+    {% if not_found or (results is defined and results|length == 0 and request.args.get('q')) %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <strong>⚠️ العميل غير مسجل في هذا الفرع محلياً.</strong> 
+        هل ترغب في استعلام وحجوزات هذا العميل من الفرع الآخر؟
+      </div>
+      <button class="btn btn-sm btn-info text-nowrap fw-bold" type="button" onclick="document.getElementById('btn_search_other_branch').click();">
+        🔄 البحث فوراً في الفرع الآخر
+      </button>
     </div>
     {% endif %} {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
