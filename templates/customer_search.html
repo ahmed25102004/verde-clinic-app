@@ -27,31 +27,157 @@
             يمكنك البحث بجزء من الاسم أو برقم الموبايل كاملاً.
           </div>
         </div>
-        <div class="col-md-2">
-          <button class="btn btn-primary w-100" type="submit">بحث</button>
+        <div class="col-md-2 d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1" type="submit">بحث محلّي</button>
+          <button class="btn btn-outline-info text-nowrap" type="button" id="btn_search_other_branch">🔄 البحث في الفرع الآخر</button>
         </div>
       </div>
     </form>
+
+    <!-- Modal for Cross-Branch Search Results -->
+    <div class="modal fade" id="crossBranchModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light border-secondary">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="crossBranchTitle">🔍 نتائج البحث في الفرع الآخر</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="crossBranchResultsBody">
+            <div class="text-center py-4">
+              <div class="spinner-border text-info" role="status"></div>
+              <p class="mt-2 text-muted">جاري التوصيل بالفرع الآخر واستعلام البيانات...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script>
-      (function () {
-        const qInput = document.getElementById("q_input");
-        const form = qInput && qInput.closest("form");
+        const btnOther = document.getElementById("btn_search_other_branch");
+        const modalEl = document.getElementById("crossBranchModal");
+        const bodyEl = document.getElementById("crossBranchResultsBody");
+        const titleEl = document.getElementById("crossBranchTitle");
 
-        function validateForm() {
-          const v = (qInput.value || "").trim();
-          if (!v) {
-            alert("يرجى إدخال اسم العميل أو رقم الموبايل للبحث");
-            return false;
-          }
-          return true;
-        }
-
-        if (form) {
-          form.addEventListener("submit", function (e) {
-            if (!validateForm()) {
-              e.preventDefault();
+        if (btnOther) {
+          btnOther.addEventListener("click", function () {
+            const v = (qInput.value || "").trim();
+            if (!v) {
+              alert("يرجى إدخال اسم العميل أو رقم الموبايل أولاً للبحث في الفرع الآخر");
               qInput.focus();
+              return;
             }
+
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+            bodyEl.innerHTML = `
+              <div class="text-center py-4">
+                <div class="spinner-border text-info" role="status"></div>
+                <p class="mt-2 text-muted">جاري التوصيل بالفرع الآخر واستعلام البيانات...</p>
+              </div>`;
+
+            fetch("/api/search_other_branch?q=" + encodeURIComponent(v))
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.status === "error") {
+                  bodyEl.innerHTML = `<div class="alert alert-warning">${data.message}</div>`;
+                  return;
+                }
+                const otherName = data.other_branch_name || "الفرع الآخر";
+                titleEl.innerText = "🔍 نتائج البحث في " + otherName;
+
+                if (!data.results || data.results.length === 0) {
+                  bodyEl.innerHTML = `<div class="alert alert-info">لم يتم العثور على عميلات في ${otherName} برقم الموبايل أو الاسم أدناه.</div>`;
+                  return;
+                }
+
+                let html = '<div class="list-group">';
+                data.results.forEach((c) => {
+                  html += `<div class="list-group-item bg-dark text-light border-secondary mb-2 rounded">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0 text-info">👤 ${c.name} (${c.phone})</h5>
+                      <span class="badge bg-secondary">مسجلة في ${otherName}</span>
+                    </div>`;
+
+                  if (c.bookings && c.bookings.length > 0) {
+                    html += '<h6 class="mt-2 text-warning fs-7">الباكدجات والحجوزات الحالية:</h6>';
+                    c.bookings.forEach((b) => {
+                      html += `<div class="p-2 mb-2 rounded bg-secondary bg-opacity-25 border border-secondary d-flex justify-content-between align-items-center">
+                        <div>
+                          <div><strong>📦 ${b.package_name}</strong> - السعر: ${b.price} ج.م</div>
+                          <small class="text-muted">الجلسات المنفذة: <span class="badge bg-success">${b.sessions_done} من ${b.total_sessions}</span></small>
+                        </div>
+                        <button class="btn btn-sm btn-success btn-import-cust" 
+                          data-phone="${c.phone}" 
+                          data-name="${c.name}"
+                          data-gender="${c.gender || 'أنثى'}"
+                          data-note="${c.note || ''}"
+                          data-pkg="${b.package_name}"
+                          data-cat="${b.category}"
+                          data-total="${b.total_sessions}"
+                          data-done="${b.sessions_done}"
+                          data-price="${b.price}"
+                          data-pulses-total="${b.pulses_total || 0}"
+                          data-pulses-used="${b.pulses_used || 0}"
+                          data-booking-id="${b.booking_id}"
+                          data-branch="${otherName}">
+                          ⚡ مزامنة وتسجيل جلسة هنا
+                        </button>
+                      </div>`;
+                    });
+                  } else {
+                    html += '<p class="text-muted small">لا توجد حجوزات نشطة مفعلة في الفرع الآخر</p>';
+                  }
+                  html += "</div>";
+                });
+                html += "</div>";
+                bodyEl.innerHTML = html;
+
+                // Attach click handlers to import buttons
+                document.querySelectorAll(".btn-import-cust").forEach((btn) => {
+                  btn.addEventListener("click", function () {
+                    const btnSelf = this;
+                    btnSelf.disabled = true;
+                    btnSelf.innerText = "جاري المزامنة...";
+
+                    const payload = {
+                      phone: btnSelf.getAttribute("data-phone"),
+                      name: btnSelf.getAttribute("data-name"),
+                      gender: btnSelf.getAttribute("data-gender"),
+                      note: btnSelf.getAttribute("data-note"),
+                      package_name: btnSelf.getAttribute("data-pkg"),
+                      category: btnSelf.getAttribute("data-cat"),
+                      total_sessions: btnSelf.getAttribute("data-total"),
+                      sessions_done: btnSelf.getAttribute("data-done"),
+                      price: btnSelf.getAttribute("data-price"),
+                      pulses_total: btnSelf.getAttribute("data-pulses-total"),
+                      pulses_used: btnSelf.getAttribute("data-pulses-used"),
+                      booking_id: btnSelf.getAttribute("data-booking-id"),
+                      branch_name: btnSelf.getAttribute("data-branch"),
+                    };
+
+                    fetch("/api/import_remote_customer", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload),
+                    })
+                      .then((r) => r.json())
+                      .then((res) => {
+                        if (res.status === "success") {
+                          window.location.href = res.redirect_url;
+                        } else {
+                          alert(res.message || "حدث خطأ أثناء المزامنة");
+                          btnSelf.disabled = false;
+                        }
+                      })
+                      .catch((err) => {
+                        alert("تعذر المزامنة: " + err);
+                        btnSelf.disabled = false;
+                      });
+                  });
+                });
+              })
+              .catch((err) => {
+                bodyEl.innerHTML = `<div class="alert alert-danger">خطأ أثناء الاتصال بالفرع الآخر: ${err}</div>`;
+              });
           });
         }
       })();
