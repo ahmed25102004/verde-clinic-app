@@ -95,6 +95,21 @@ def add_session(booking_id):
             return redirect(request.referrer or url_for("index"))
     
     conn.commit()
+    
+    # Check if this booking is synced with a remote branch
+    cur.execute("SELECT remote_booking_id, sessions_done, pulses_used FROM bookings WHERE id = ?", (booking_id,))
+    r_row = cur.fetchone()
+    if r_row and r_row[0]:
+        remote_bid, s_done, p_used = r_row[0], r_row[1], r_row[2]
+        other_url = os.getenv("OTHER_BRANCH_URL", "http://172.17.0.1:8090")
+        try:
+            import requests
+            requests.post(f"{other_url.rstrip('/')}/api/sync_remote_session", 
+                          json={"remote_booking_id": remote_bid, "sessions_done": s_done, "pulses_used": p_used}, 
+                          timeout=2)
+        except Exception:
+            pass
+
     conn.close()
     return redirect(request.referrer or url_for("index"))
 

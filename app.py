@@ -25,8 +25,10 @@ from controllers.report_controller import report_bp
 from controllers.backup_controller import backup_bp
 from controllers.expense_controller import expense_bp
 from controllers.whatsapp_controller import whatsapp_bp
+from controllers.cross_branch_controller import cross_branch_bp
 
 app = Flask(__name__)
+app.register_blueprint(cross_branch_bp)
 
 # Secret key configuration with persistent fallback
 secret_key = os.environ.get("POS_SECRET")

@@ -103,10 +103,22 @@ def init_db():
         price_override INTEGER,
         next_session_date TEXT,
         reminder_sent INTEGER DEFAULT 0,
+        remote_booking_id INTEGER,
+        remote_branch_name TEXT,
         FOREIGN KEY (customer_id) REFERENCES customers(id),
         FOREIGN KEY (package_id) REFERENCES packages(id)
     )
     """)
+
+    try:
+        cur.execute("ALTER TABLE bookings ADD COLUMN remote_booking_id INTEGER")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cur.execute("ALTER TABLE bookings ADD COLUMN remote_branch_name TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
