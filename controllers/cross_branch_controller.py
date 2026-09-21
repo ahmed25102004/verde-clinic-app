@@ -74,8 +74,8 @@ def search_other_branch():
     q = request.args.get("q", "").strip()
     other_branch_url = os.getenv("OTHER_BRANCH_URL", "")
     other_branch_name = os.getenv("OTHER_BRANCH_NAME", "الفرع الآخر")
-    this_port = os.getenv("PORT", "8090")
-    target_port = "8091" if "8090" in str(this_port) else "8090"
+    this_port = os.getenv("PORT", "8091")
+    target_port = "8091" if "8091" in str(this_port) else "8091"
     
     if not q:
         return jsonify({"status": "error", "message": "يرجى كتابة اسم أو رقم هاتف للبحث"})

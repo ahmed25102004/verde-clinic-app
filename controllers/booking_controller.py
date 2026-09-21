@@ -101,7 +101,7 @@ def add_session(booking_id):
     r_row = cur.fetchone()
     if r_row and r_row[0]:
         remote_bid, s_done, p_used = r_row[0], r_row[1], r_row[2]
-        other_url = os.getenv("OTHER_BRANCH_URL", "http://172.17.0.1:8090")
+        other_url = os.getenv("OTHER_BRANCH_URL", "http://172.17.0.1:8091")
         try:
             import requests
             requests.post(f"{other_url.rstrip('/')}/api/sync_remote_session", 
