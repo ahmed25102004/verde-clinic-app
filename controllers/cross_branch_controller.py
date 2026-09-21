@@ -72,23 +72,38 @@ def remote_search():
 @login_required
 def search_other_branch():
     q = request.args.get("q", "").strip()
-    other_branch_url = os.getenv("OTHER_BRANCH_URL", "http://172.17.0.1:8090")
+    other_branch_url = os.getenv("OTHER_BRANCH_URL", "")
     other_branch_name = os.getenv("OTHER_BRANCH_NAME", "الفرع الآخر")
+    this_port = os.getenv("PORT", "8090")
+    target_port = "8091" if "8090" in str(this_port) else "8090"
     
     if not q:
         return jsonify({"status": "error", "message": "يرجى كتابة اسم أو رقم هاتف للبحث"})
         
-    try:
-        url = f"{other_branch_url.rstrip('/')}/api/remote_search?q={q}"
-        resp = requests.get(url, timeout=4)
-        if resp.status_code == 200:
-            data = resp.json()
-            data["other_branch_name"] = other_branch_name
-            return jsonify(data)
-        else:
-            return jsonify({"status": "error", "message": f"تعذر الاتصال بـ {other_branch_name}"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"خطأ في الاتصال بالفرع الآخر: {str(e)}"})
+    candidate_urls = []
+    if other_branch_url:
+        candidate_urls.append(other_branch_url.rstrip('/'))
+    candidate_urls.extend([
+        f"http://host.docker.internal:{target_port}",
+        f"http://172.17.0.1:{target_port}",
+        f"http://186.240.152.148:{target_port}",
+        f"http://127.0.0.1:{target_port}"
+    ])
+
+    last_err = ""
+    for base_url in candidate_urls:
+        try:
+            url = f"{base_url}/api/remote_search?q={q}"
+            resp = requests.get(url, timeout=3)
+            if resp.status_code == 200:
+                data = resp.json()
+                data["other_branch_name"] = other_branch_name
+                return jsonify(data)
+        except Exception as e:
+            last_err = str(e)
+            continue
+            
+    return jsonify({"status": "error", "message": f"تعذر الاتصال بـ {other_branch_name} ({last_err})"})
 
 @cross_branch_bp.route("/api/import_remote_customer", methods=["POST"])
 @login_required

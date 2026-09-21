@@ -41,12 +41,12 @@
     </form>
 
     <!-- Modal for Cross-Branch Search Results -->
-    <div class="modal fade" id="crossBranchModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content bg-dark text-light border-secondary">
+    <div class="modal fade" id="crossBranchModal" tabindex="-1" style="background: rgba(0,0,0,0.85);" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary shadow-lg">
           <div class="modal-header border-secondary">
             <h5 class="modal-title" id="crossBranchTitle">🔍 نتائج البحث في الفرع الآخر</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white" id="btn_close_cross_modal" aria-label="Close"></button>
           </div>
           <div class="modal-body" id="crossBranchResultsBody">
             <div class="text-center py-4">
@@ -58,22 +58,34 @@
       </div>
     </div>
     <script>
+        const qInput = document.getElementById("q_input");
         const btnOther = document.getElementById("btn_search_other_branch");
         const modalEl = document.getElementById("crossBranchModal");
         const bodyEl = document.getElementById("crossBranchResultsBody");
         const titleEl = document.getElementById("crossBranchTitle");
+        const closeBtn = document.getElementById("btn_close_cross_modal");
+
+        function openCrossModal() {
+          modalEl.style.display = "block";
+          modalEl.classList.add("show");
+        }
+        function closeCrossModal() {
+          modalEl.style.display = "none";
+          modalEl.classList.remove("show");
+        }
+
+        if (closeBtn) closeBtn.addEventListener("click", closeCrossModal);
 
         if (btnOther) {
           btnOther.addEventListener("click", function () {
-            const v = (qInput.value || "").trim();
+            const v = (qInput ? qInput.value : "").trim();
             if (!v) {
               alert("يرجى إدخال اسم العميل أو رقم الموبايل أولاً للبحث في الفرع الآخر");
-              qInput.focus();
+              if (qInput) qInput.focus();
               return;
             }
 
-            const bsModal = new bootstrap.Modal(modalEl);
-            bsModal.show();
+            openCrossModal();
             bodyEl.innerHTML = `
               <div class="text-center py-4">
                 <div class="spinner-border text-info" role="status"></div>
