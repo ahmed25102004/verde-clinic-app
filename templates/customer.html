@@ -86,8 +86,13 @@
             <td>{{ b['package_name'] }}</td>
             <td>{{ b['package_price'] }} جنيه</td>
             <td>
-              {{ paid_map[b['id']] or 0 }} جنيه {% if payments_map and
-              payments_map.get(b['id']) %}
+              {{ (paid_map[b['id']] or 0) + (b['remote_paid_initial'] or 0) }} جنيه
+              {% if b['remote_paid_initial'] and b['remote_paid_initial'] > 0 %}
+              <div class="mt-1">
+                <span class="badge bg-secondary text-light me-1" title="مبلغ مدفوع سابقاً في الفرع الآخر">{{ b['remote_paid_initial'] }} جنيه (محول من {{ b['remote_branch_name'] or 'الفرع الآخر' }})</span>
+              </div>
+              {% endif %}
+              {% if payments_map and payments_map.get(b['id']) %}
               <div class="mt-1">
                 {% for p in payments_map.get(b['id']) %}
                 <span class="badge bg-info text-dark me-1"
@@ -100,7 +105,7 @@
               </div>
               {% endif %}
             </td>
-            <td>{{ b['package_price'] - (paid_map[b['id']] or 0) }} جنيه</td>
+            <td>{{ b['package_price'] - ((paid_map[b['id']] or 0) + (b['remote_paid_initial'] or 0)) }} جنيه</td>
             <td>{{ b['total_sessions'] }}</td>
             <td>{{ b['sessions_done'] }}</td>
             <td>{{ b['total_sessions'] - b['sessions_done'] }}</td>
