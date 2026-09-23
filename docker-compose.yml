@@ -16,5 +16,4 @@ services:
 
 networks:
   la_verde_net:
-    name: la_verde_net
-    driver: bridge
+    external: true

@@ -86,19 +86,11 @@ def search_other_branch():
         return jsonify({"status": "error", "message": "يرجى كتابة اسم أو رقم هاتف للبحث"})
         
     candidate_urls = [
-<<<<<<< HEAD
-        "http://la_verde_alaboudi_app:5007",
-        "http://186.240.152.148:8091",
-        "http://172.17.0.1:8091",
-        "http://host.docker.internal:8091",
-        "http://127.0.0.1:8091"
-=======
-        "http://la_verde_alaboudi_app:5007",
-        "http://186.240.152.148:8091",
-        "http://172.17.0.1:8091",
-        "http://host.docker.internal:8091",
-        "http://127.0.0.1:8091"
->>>>>>> al-masala
+        "http://la_verde_almasala_app:5007",
+        "http://186.240.152.148:8090",
+        "http://172.17.0.1:8090",
+        "http://host.docker.internal:8090",
+        "http://127.0.0.1:8090"
     ]
 
     last_err = ""
