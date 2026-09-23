@@ -117,21 +117,13 @@
               <!-- Local Search Box -->
               <form class="topbar-search d-none d-sm-block" action="/customer" method="get">
                 <i class="bi bi-search"></i>
-<<<<<<< HEAD
                 <input type="search" name="q" placeholder="بحث محلي (فرع العبودي)..." value="{{ request.args.q or '' }}" />
-=======
-                <input type="search" name="q" placeholder="بحث محلي (فرع المسلة)..." value="{{ request.args.q or '' }}" />
->>>>>>> al-masala
               </form>
 
               <!-- Other Branch Search Box -->
               <div class="topbar-search d-none d-md-block position-relative" style="width: 280px;">
                 <i class="bi bi-arrow-repeat text-info"></i>
-<<<<<<< HEAD
                 <input type="search" id="topbar_other_branch_input" placeholder="البحث في فرع المسلة..." autocomplete="off" />
-=======
-                <input type="search" id="topbar_other_branch_input" placeholder="البحث في فرع العبودي..." autocomplete="off" />
->>>>>>> al-masala
                 <div id="topbar_other_branch_dropdown" class="position-absolute w-100 bg-dark text-light border border-info rounded-3 shadow-lg p-2 mt-1 d-none" style="z-index: 9999; max-height: 350px; overflow-y: auto; right: 0;">
                 </div>
               </div>
@@ -261,13 +253,8 @@
               topDropdown.classList.remove("d-none");
               topDropdown.innerHTML = '<div class="text-center py-2 text-info"><div class="spinner-border spinner-border-sm me-1"></div> جاري الاستعلام...</div>';
 
-<<<<<<< HEAD
-              let targetPort = "8091";
+              let targetPort = "8090";
               let targetName = "فرع المسلة";
-=======
-              let targetPort = "8091";
-              let targetName = "فرع العبودي";
->>>>>>> al-masala
               let directUrl = window.location.protocol + "//" + window.location.hostname + ":" + targetPort + "/api/remote_search?q=" + encodeURIComponent(v);
 
               fetch(directUrl)
