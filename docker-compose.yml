@@ -1,9 +1,9 @@
 services:
-  la_verde_almasala:
+  la_verde_alaboudi:
     build: .
-    container_name: la_verde_almasala_app
+    container_name: la_verde_alaboudi_app
     ports:
-      - "${PORT:-8090}:5007"
+      - "${PORT:-8091}:5007"
     env_file:
       - .env
     volumes:
