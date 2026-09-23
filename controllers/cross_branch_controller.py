@@ -82,15 +82,13 @@ def search_other_branch():
     if not q:
         return jsonify({"status": "error", "message": "يرجى كتابة اسم أو رقم هاتف للبحث"})
         
-    candidate_urls = []
-    if other_branch_url:
-        candidate_urls.append(other_branch_url.rstrip('/'))
-    candidate_urls.extend([
-        f"http://host.docker.internal:{target_port}",
-        f"http://172.17.0.1:{target_port}",
-        f"http://186.240.152.148:{target_port}",
-        f"http://127.0.0.1:{target_port}"
-    ])
+    candidate_urls = [
+        "http://la_verde_alaboudi_app:5007",
+        "http://186.240.152.148:8091",
+        "http://172.17.0.1:8091",
+        "http://host.docker.internal:8091",
+        "http://127.0.0.1:8091"
+    ]
 
     last_err = ""
     for base_url in candidate_urls:

@@ -10,4 +10,11 @@ services:
       - ./data:/app/data
       - ./backups:/app/backups
       - ./exports:/app/exports
+    networks:
+      - la_verde_net
     restart: unless-stopped
+
+networks:
+  la_verde_net:
+    name: la_verde_net
+    driver: bridge
