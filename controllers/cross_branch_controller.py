@@ -7,24 +7,40 @@ from datetime import datetime
 
 cross_branch_bp = Blueprint("cross_branch", __name__)
 
-@cross_branch_bp.route("/api/remote_search", methods=["GET"])
+@cross_branch_bp.route("/api/remote_search", methods=["GET", "OPTIONS"])
 def remote_search():
+    if request.method == "OPTIONS":
+        resp = jsonify({})
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return resp, 200
+
     q = request.args.get("q", "").strip()
     if not q:
-        return jsonify({"status": "success", "results": []})
+        resp = jsonify({"status": "success", "results": []})
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp
         
     conn = get_conn()
     cur = conn.cursor()
+    
     digits_only = "".join(c for c in q if c.isdigit())
     search_pattern = f"%{q}%"
     digits_pattern = f"%{digits_only}%" if digits_only else search_pattern
     
+    stripped_digits = digits_only.lstrip('0') if digits_only.startswith('0') else digits_only
+    stripped_pattern = f"%{stripped_digits}%" if stripped_digits else search_pattern
+    
     cur.execute("""
         SELECT c.id, c.name, c.phone, c.gender, c.note
         FROM customers c
-        WHERE c.name LIKE ? OR c.phone LIKE ? OR (length(?) >= 3 AND c.phone LIKE ?)
+        WHERE c.name LIKE ? 
+           OR c.phone LIKE ? 
+           OR (length(?) >= 3 AND c.phone LIKE ?)
+           OR (length(?) >= 3 AND c.phone LIKE ?)
         LIMIT 20
-    """, (search_pattern, search_pattern, digits_only, digits_pattern))
+    """, (search_pattern, search_pattern, digits_only, digits_pattern, stripped_digits, stripped_pattern))
     
     customers = cur.fetchall()
     results = []
@@ -65,9 +81,13 @@ def remote_search():
         })
         
     conn.close()
+    
+    this_port = str(os.getenv("PORT", "8090"))
+    branch_default = "فرع المسلة" if "8090" in this_port else "فرع العبودي"
+    
     resp = jsonify({
         "status": "success",
-        "branch_name": os.getenv("THIS_BRANCH_NAME", "الفرع الآخر"),
+        "branch_name": os.getenv("THIS_BRANCH_NAME", branch_default),
         "results": results
     })
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -77,27 +97,43 @@ def remote_search():
 @login_required
 def search_other_branch():
     q = request.args.get("q", "").strip()
-    other_branch_url = os.getenv("OTHER_BRANCH_URL", "")
-    other_branch_name = os.getenv("OTHER_BRANCH_NAME", "الفرع الآخر")
-    this_port = os.getenv("PORT", "8090")
-    target_port = "8090" if "8090" in str(this_port) else "8090"
-    
     if not q:
         return jsonify({"status": "error", "message": "يرجى كتابة اسم أو رقم هاتف للبحث"})
+
+    this_port = str(os.getenv("PORT", "8090"))
+    
+    # Determine the target branch container and port based on current container's port
+    if "8091" in this_port:
+        # We are on Al Aboudi (8091) -> Target is Al Masala (8090)
+        target_container = "la_verde_almasala_app"
+        target_port = "8090"
+        default_other_name = "فرع المسلة"
+    else:
+        # We are on Al Masala (8090) -> Target is Al Aboudi (8091)
+        target_container = "la_verde_alaboudi_app"
+        target_port = "8091"
+        default_other_name = "فرع العبودي"
+
+    other_branch_name = os.getenv("OTHER_BRANCH_NAME", default_other_name)
+    custom_url = os.getenv("OTHER_BRANCH_URL", "").strip()
+
+    candidate_urls = []
+    if custom_url:
+        candidate_urls.append(custom_url.rstrip('/'))
         
-    candidate_urls = [
-        "http://la_verde_alaboudi_app:5007",
-        "http://186.240.152.148:8091",
-        "http://172.17.0.1:8091",
-        "http://host.docker.internal:8091",
-        "http://127.0.0.1:8091"
-    ]
+    candidate_urls.extend([
+        f"http://{target_container}:5007",
+        f"http://186.240.152.148:{target_port}",
+        f"http://172.17.0.1:{target_port}",
+        f"http://host.docker.internal:{target_port}",
+        f"http://127.0.0.1:{target_port}"
+    ])
 
     last_err = ""
     for base_url in candidate_urls:
         try:
-            url = f"{base_url}/api/remote_search?q={q}"
-            resp = requests.get(url, timeout=3)
+            url = f"{base_url}/api/remote_search?q={requests.utils.quote(q)}"
+            resp = requests.get(url, timeout=4)
             if resp.status_code == 200:
                 data = resp.json()
                 data["other_branch_name"] = other_branch_name
