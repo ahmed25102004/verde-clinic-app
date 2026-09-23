@@ -173,68 +173,70 @@ def search_other_branch():
 @cross_branch_bp.route("/api/import_remote_customer", methods=["POST"])
 @login_required
 def import_remote_customer():
-    data = request.json or {}
-    phone = data.get("phone", "").strip()
-    name = data.get("name", "").strip()
-    gender = data.get("gender", "أنثى")
-    note = data.get("note", "")
-    
-    pkg_name = data.get("package_name", "باكدج مشترك بين الفروع")
-    category = data.get("category", "cross_branch")
-    total_sessions = int(data.get("total_sessions", 1))
-    sessions_done = int(data.get("sessions_done", 0))
-    price = int(data.get("price", 0))
-    pulses_total = int(data.get("pulses_total", 0))
-    pulses_used = int(data.get("pulses_used", 0))
-    remote_booking_id = data.get("booking_id")
-    remote_branch_name = data.get("branch_name", os.getenv("OTHER_BRANCH_NAME", "الفرع الآخر"))
+    try:
+        data = request.json or {}
+        phone = data.get("phone", "").strip()
+        name = data.get("name", "").strip()
+        note = data.get("note", "")
+        
+        pkg_name = data.get("package_name", "باكدج مشترك بين الفروع")
+        category = data.get("category", "cross_branch")
+        total_sessions = int(data.get("total_sessions", 1))
+        sessions_done = int(data.get("sessions_done", 0))
+        price = int(data.get("price", 0))
+        pulses_total = int(data.get("pulses_total", 0))
+        pulses_used = int(data.get("pulses_used", 0))
+        remote_booking_id = data.get("booking_id")
+        remote_branch_name = data.get("branch_name", os.getenv("OTHER_BRANCH_NAME", "الفرع الآخر"))
 
-    if not phone or not name:
-        return jsonify({"status": "error", "message": "بيانات العميل غير مكتملة"})
+        if not phone or not name:
+            return jsonify({"status": "error", "message": "بيانات العميل غير مكتملة"})
 
-    conn = get_conn()
-    cur = conn.cursor()
-    
-    # 1. Check or Create Customer
-    cur.execute("SELECT id FROM customers WHERE phone = ?", (phone,))
-    c_row = cur.fetchone()
-    if c_row:
-        cust_id = c_row[0]
-    else:
-        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cur.execute("INSERT INTO customers (name, phone, gender, note, created_at) VALUES (?,?,?,?,?)",
-                    (name, phone, gender, f"مشترك من {remote_branch_name} | {note}".strip(), created_at))
-        cust_id = cur.lastrowid
+        conn = get_conn()
+        cur = conn.cursor()
+        
+        # 1. Check or Create Customer
+        cur.execute("SELECT id FROM customers WHERE phone = ?", (phone,))
+        c_row = cur.fetchone()
+        if c_row:
+            cust_id = c_row[0]
+        else:
+            created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cur.execute("INSERT INTO customers (name, phone, note, created_at) VALUES (?,?,?,?)",
+                        (name, phone, f"مشترك من {remote_branch_name} | {note}".strip(), created_at))
+            cust_id = cur.lastrowid
 
-    # 2. Check or Create Matching Package
-    cur.execute("SELECT id FROM packages WHERE name = ? AND category = ?", (pkg_name, category))
-    pkg_row = cur.fetchone()
-    if pkg_row:
-        pkg_id = pkg_row[0]
-    else:
-        cur.execute("INSERT INTO packages (category, name, sessions_count, price, bonus) VALUES (?,?,?,?,?)",
-                    (category, pkg_name, total_sessions, price, f"من {remote_branch_name}"))
-        pkg_id = cur.lastrowid
+        # 2. Check or Create Matching Package
+        cur.execute("SELECT id FROM packages WHERE name = ? AND category = ?", (pkg_name, category))
+        pkg_row = cur.fetchone()
+        if pkg_row:
+            pkg_id = pkg_row[0]
+        else:
+            cur.execute("INSERT INTO packages (category, name, sessions_count, price, bonus) VALUES (?,?,?,?,?)",
+                        (category, pkg_name, total_sessions, price, f"من {remote_branch_name}"))
+            pkg_id = cur.lastrowid
 
-    # 3. Create Local Booking
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    emp_id = session.get("employee_id")
-    
-    cur.execute("""
-        INSERT INTO bookings (customer_id, package_id, total_sessions, sessions_done, start_date, employee_id,
-                              pulses_total, pulses_used, price_override, remote_booking_id, remote_branch_name)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)
-    """, (cust_id, pkg_id, total_sessions, sessions_done, today_str, emp_id,
-          pulses_total, pulses_used, price, remote_booking_id, remote_branch_name))
-    
-    conn.commit()
-    conn.close()
-    
-    return jsonify({
-        "status": "success",
-        "customer_id": cust_id,
-        "redirect_url": f"/customer/{cust_id}"
-    })
+        # 3. Create Local Booking
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        emp_id = session.get("employee_id")
+        
+        cur.execute("""
+            INSERT INTO bookings (customer_id, package_id, total_sessions, sessions_done, start_date, employee_id,
+                                  pulses_total, pulses_used, price_override, remote_booking_id, remote_branch_name)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        """, (cust_id, pkg_id, total_sessions, sessions_done, today_str, emp_id,
+              pulses_total, pulses_used, price, remote_booking_id, remote_branch_name))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "status": "success",
+            "customer_id": cust_id,
+            "redirect_url": f"/customer/{cust_id}"
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"خطأ أثناء المزامنة: {str(e)}"})
 
 @cross_branch_bp.route("/api/sync_remote_session", methods=["POST"])
 def sync_remote_session():
