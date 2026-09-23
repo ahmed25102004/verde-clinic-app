@@ -93,7 +93,7 @@
               </div>`;
 
             let curPort = window.location.port || "80";
-            let targetPort = curPort === "8090" ? "8091" : (curPort === "8091" ? "8090" : "8091");
+            let targetPort = curPort === "8090" ? "8090" : (curPort === "8090" ? "8090" : "8090");
             let directUrl = window.location.protocol + "//" + window.location.hostname + ":" + targetPort + "/api/remote_search?q=" + encodeURIComponent(v);
 
             fetch(directUrl)
