@@ -155,7 +155,16 @@ def whatsapp_background_agent():
 
 @app.context_processor
 def inject_global_vars():
-    res = {'allow_public_signup': False, 'unread_count': 0, 'notifications': []}
+    this_port = str(os.getenv("PORT", "8091"))
+    branch_default = "فرع المسلة" if "8090" in this_port else "فرع العبودي"
+    this_branch_name = os.getenv("THIS_BRANCH_NAME", branch_default)
+
+    res = {
+        'allow_public_signup': False, 
+        'unread_count': 0, 
+        'notifications': [],
+        'this_branch_name': this_branch_name
+    }
     if request.path.startswith('/static'):
         return res
     try:

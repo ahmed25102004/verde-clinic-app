@@ -1,48 +1,113 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-center py-5" style="min-height: 75vh;">
-  <div class="card border-0 shadow-lg p-4 p-md-5 rounded-4" style="max-width: 440px; width: 100%; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
-    <div class="text-center mb-4">
-      <div class="sidebar-brand-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.8rem;">
-        <i class="bi bi-sparkles"></i>
+<!-- Decorative SVG Waves / Circles in Corners -->
+<div class="position-absolute top-0 start-0 pointer-events-none d-none d-sm-block" style="z-index: 1; opacity: 0.22; transform: translate(-15%, -15%);">
+  <svg width="450" height="450" viewBox="0 0 400 400" fill="none">
+    <circle cx="200" cy="200" r="180" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8 8"/>
+    <circle cx="200" cy="200" r="140" stroke="#06b6d4" stroke-width="3"/>
+    <circle cx="200" cy="200" r="100" stroke="#6366f1" stroke-width="1.5"/>
+    <circle cx="200" cy="200" r="60" stroke="#3b82f6" stroke-width="2"/>
+  </svg>
+</div>
+
+<div class="position-absolute bottom-0 end-0 pointer-events-none d-none d-sm-block" style="z-index: 1; opacity: 0.22; transform: translate(15%, 15%);">
+  <svg width="450" height="450" viewBox="0 0 400 400" fill="none">
+    <circle cx="200" cy="200" r="180" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8 8"/>
+    <circle cx="200" cy="200" r="140" stroke="#06b6d4" stroke-width="3"/>
+    <circle cx="200" cy="200" r="100" stroke="#6366f1" stroke-width="1.5"/>
+    <circle cx="200" cy="200" r="60" stroke="#3b82f6" stroke-width="2"/>
+  </svg>
+</div>
+
+<div class="container py-4 position-relative" style="z-index: 2;">
+  <div class="row justify-content-center align-items-center g-4 g-lg-5">
+    
+    <!-- Hero Branding Section -->
+    <div class="col-lg-6 text-center text-lg-end mb-3 mb-lg-0">
+      <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-20 text-primary rounded-circle mb-3 p-3 shadow-lg" style="width: 80px; height: 80px; border: 2px solid rgba(59, 130, 246, 0.4);">
+        <i class="bi bi-heart-pulse-fill display-5 text-info"></i>
       </div>
-      <h3 class="fw-bold text-white mb-1">تسجيل الدخول</h3>
-      <p class="text-muted small">نظام إدارة لافيرد بيوتي كلينك المسله</p>
-    </div>
+      
+      <h1 class="fw-bold text-white mb-2" style="font-size: 2.2rem; letter-spacing: -0.5px;">
+        نظام إدارة لافيرد بيوتي كلينك
+      </h1>
 
-    {% if error %}
-    <div class="alert alert-danger py-2 px-3 small text-center mb-4">
-      <i class="bi bi-exclamation-circle-fill me-1"></i> {{ error }}
-    </div>
-    {% endif %}
-
-    <form method="post" action="{{ url_for('employee.login') }}">
+      <!-- Dynamic Branch Badge in Center -->
       <div class="mb-3">
-        <label class="form-label text-secondary fw-semibold">ID الموظف</label>
-        <div class="input-group">
-          <span class="input-group-text border-secondary bg-dark text-muted"><i class="bi bi-person"></i></span>
-          <input type="number" class="form-control" name="id" placeholder="أدخل رقم ID الخاص بك" required autocomplete="username">
+        <span class="badge bg-gradient bg-primary fs-6 px-4 py-2 rounded-pill shadow-lg border border-light border-opacity-25" style="letter-spacing: 0.5px;">
+          📍 {{ this_branch_name or 'فرع المسلة' }}
+        </span>
+      </div>
+
+      <p class="text-white-50 fs-6 fw-medium mb-3">
+        إدارة المواعيد • العملاء • الجلسات • الحسابات والتقارير
+      </p>
+
+      <!-- Pulse Heartbeat Divider -->
+      <div class="d-flex align-items-center justify-content-center justify-content-lg-start gap-3 text-info opacity-75 mb-4">
+        <span style="width: 50px; height: 2px; background: linear-gradient(90deg, transparent, currentColor);"></span>
+        <i class="bi bi-activity fs-4"></i>
+        <span style="width: 50px; height: 2px; background: linear-gradient(90deg, currentColor, transparent);"></span>
+      </div>
+
+      <h4 class="fw-bold text-white mb-1">مرحباً بك في النظام</h4>
+      <p class="text-white-50 small mb-0">يرجى تسجيل الدخول للبدء في استخدام خدمات النظام</p>
+    </div>
+
+    <!-- Login Form Card -->
+    <div class="col-lg-5 col-md-8 col-sm-10">
+      <div class="card border-0 shadow-lg p-4 p-md-5 rounded-4" 
+           style="background: rgba(17, 23, 38, 0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.15) !important;">
+        
+        <div class="text-center mb-4">
+          <div class="d-inline-block bg-info bg-opacity-10 text-info p-2.5 rounded-3 mb-2">
+            <i class="bi bi-shield-lock-fill fs-3"></i>
+          </div>
+          <h4 class="fw-bold text-white mb-1">تسجيل الدخول</h4>
+          <span class="text-muted small">أدخل بيانات الموظف الخاصة بك</span>
         </div>
-      </div>
 
-      <div class="mb-4">
-        <label class="form-label text-secondary fw-semibold">كلمة المرور</label>
-        <div class="input-group">
-          <span class="input-group-text border-secondary bg-dark text-muted"><i class="bi bi-lock"></i></span>
-          <input type="password" class="form-control" name="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password">
+        {% if error %}
+        <div class="alert alert-danger py-2.5 px-3 small text-center mb-4 rounded-3 border-0 shadow-sm" style="background-color: rgba(239, 68, 68, 0.2); color: #fca5a5;">
+          <i class="bi bi-exclamation-circle-fill me-1"></i> {{ error }}
         </div>
-      </div>
+        {% endif %}
 
-      <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold shadow-sm mb-3">
-        تسجيل الدخول <i class="bi bi-arrow-left ms-1"></i>
-      </button>
+        <form method="post" action="{{ url_for('employee.login') }}">
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small mb-1">ID الموظف</label>
+            <div class="input-group">
+              <span class="input-group-text border-secondary-subtle bg-dark bg-opacity-50 text-muted px-3">
+                <i class="bi bi-person-vcard fs-5 text-info"></i>
+              </span>
+              <input type="number" class="form-control form-control-lg bg-dark bg-opacity-50 text-white border-secondary-subtle fs-6" name="id" placeholder="أدخل رقم ID الخاص بك" required autocomplete="username">
+            </div>
+          </div>
 
-      {% if allow_public_signup %}
-      <div class="text-center text-muted small mt-3">
-        ليس لديك حساب؟ <a href="{{ url_for('employee.signup') }}" class="text-primary text-decoration-none fw-bold">إنشاء حساب مدير جديد</a>
+          <div class="mb-4">
+            <label class="form-label text-secondary fw-semibold small mb-1">كلمة المرور</label>
+            <div class="input-group">
+              <span class="input-group-text border-secondary-subtle bg-dark bg-opacity-50 text-muted px-3">
+                <i class="bi bi-key-fill fs-5 text-info"></i>
+              </span>
+              <input type="password" class="form-control form-control-lg bg-dark bg-opacity-50 text-white border-secondary-subtle fs-6" name="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-lg rounded-3 fs-6 d-flex align-items-center justify-content-center gap-2">
+            <span>تسجيل الدخول</span>
+            <i class="bi bi-arrow-left"></i>
+          </button>
+
+          {% if allow_public_signup %}
+          <div class="text-center text-muted small mt-4 pt-2 border-top border-secondary border-opacity-25">
+            ليس لديك حساب؟ <a href="{{ url_for('employee.signup') }}" class="text-info text-decoration-none fw-bold">إنشاء حساب مدير جديد</a>
+          </div>
+          {% endif %}
+        </form>
       </div>
-      {% endif %}
-    </form>
+    </div>
+
   </div>
 </div>
 {% endblock %}
