@@ -15,13 +15,16 @@ def remote_search():
         
     conn = get_conn()
     cur = conn.cursor()
+    digits_only = "".join(c for c in q if c.isdigit())
     search_pattern = f"%{q}%"
+    digits_pattern = f"%{digits_only}%" if digits_only else search_pattern
+    
     cur.execute("""
         SELECT c.id, c.name, c.phone, c.gender, c.note
         FROM customers c
-        WHERE c.name LIKE ? OR c.phone LIKE ?
+        WHERE c.name LIKE ? OR c.phone LIKE ? OR (length(?) >= 3 AND c.phone LIKE ?)
         LIMIT 20
-    """, (search_pattern, search_pattern))
+    """, (search_pattern, search_pattern, digits_only, digits_pattern))
     
     customers = cur.fetchall()
     results = []
@@ -83,11 +86,19 @@ def search_other_branch():
         return jsonify({"status": "error", "message": "يرجى كتابة اسم أو رقم هاتف للبحث"})
         
     candidate_urls = [
-        "http://la_verde_almasala_app:5007",
-        "http://186.240.152.148:8090",
-        "http://172.17.0.1:8090",
-        "http://host.docker.internal:8090",
-        "http://127.0.0.1:8090"
+<<<<<<< HEAD
+        "http://la_verde_alaboudi_app:5007",
+        "http://186.240.152.148:8091",
+        "http://172.17.0.1:8091",
+        "http://host.docker.internal:8091",
+        "http://127.0.0.1:8091"
+=======
+        "http://la_verde_alaboudi_app:5007",
+        "http://186.240.152.148:8091",
+        "http://172.17.0.1:8091",
+        "http://host.docker.internal:8091",
+        "http://127.0.0.1:8091"
+>>>>>>> al-masala
     ]
 
     last_err = ""
