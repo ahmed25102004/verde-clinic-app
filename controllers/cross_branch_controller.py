@@ -206,7 +206,30 @@ def import_remote_customer():
                         (name, phone, f"مشترك من {remote_branch_name} | {note}".strip(), created_at))
             cust_id = cur.lastrowid
 
-        # 2. Check or Create Matching Package
+        # 2. Check if this remote_booking_id ALREADY exists for this customer
+        if remote_booking_id:
+            cur.execute("""
+                SELECT id, sessions_done FROM bookings 
+                WHERE customer_id = ? AND remote_booking_id = ?
+            """, (cust_id, remote_booking_id))
+            existing_b = cur.fetchone()
+            if existing_b:
+                b_id = existing_b[0]
+                new_done = max(existing_b[1], sessions_done)
+                cur.execute("""
+                    UPDATE bookings 
+                    SET sessions_done = ?, pulses_used = MAX(pulses_used, ?)
+                    WHERE id = ?
+                """, (new_done, pulses_used, b_id))
+                conn.commit()
+                conn.close()
+                return jsonify({
+                    "status": "success",
+                    "customer_id": cust_id,
+                    "redirect_url": f"/customer/{cust_id}"
+                })
+
+        # 3. Check or Create Matching Package
         cur.execute("SELECT id FROM packages WHERE name = ? AND category = ?", (pkg_name, category))
         pkg_row = cur.fetchone()
         if pkg_row:
