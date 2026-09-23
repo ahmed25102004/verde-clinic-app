@@ -7,6 +7,55 @@ from models import Booking, Session, Payment, Package, Employee
 
 booking_bp = Blueprint('booking', __name__)
 
+def notify_remote_session_sync(booking_id):
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT remote_booking_id, sessions_done, pulses_used FROM bookings WHERE id = ?", (booking_id,))
+        r_row = cur.fetchone()
+        conn.close()
+        
+        if r_row and r_row[0]:
+            remote_bid, s_done, p_used = r_row[0], r_row[1], r_row[2]
+            
+            target_container = os.getenv("OTHER_CONTAINER")
+            target_port = os.getenv("OTHER_PORT")
+            if not target_container or not target_port:
+                this_port = str(os.getenv("PORT", "8090"))
+                if "8091" in this_port:
+                    target_container = "la_verde_almasala_app"
+                    target_port = "8090"
+                else:
+                    target_container = "la_verde_alaboudi_app"
+                    target_port = "8091"
+
+            candidate_urls = []
+            custom_url = os.getenv("OTHER_BRANCH_URL", "").strip()
+            if custom_url:
+                candidate_urls.append(custom_url.rstrip('/'))
+
+            candidate_urls.extend([
+                f"http://{target_container}:5007",
+                f"http://host.docker.internal:{target_port}",
+                f"http://186.240.152.148:{target_port}",
+                f"http://172.17.0.1:{target_port}"
+            ])
+
+            import requests
+            for base_url in candidate_urls:
+                try:
+                    resp = requests.post(
+                        f"{base_url.rstrip('/')}/api/sync_remote_session",
+                        json={"remote_booking_id": remote_bid, "sessions_done": s_done, "pulses_used": p_used},
+                        timeout=3
+                    )
+                    if resp.status_code == 200:
+                        break
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
 @booking_bp.route("/quick_session", methods=["GET", "POST"])
 @login_required
 def quick_session():
@@ -38,6 +87,7 @@ def quick_session():
                     cur.execute("UPDATE bookings SET sessions_done = sessions_done + 1 WHERE id = ?", (booking_id,))
                     conn.commit()
                     conn.close()
+                    notify_remote_session_sync(booking_id)
                     return redirect(url_for("customer_detail", customer_id=customer_id))
             if conn:
                 conn.close()
@@ -95,22 +145,9 @@ def add_session(booking_id):
             return redirect(request.referrer or url_for("index"))
     
     conn.commit()
-    
-    # Check if this booking is synced with a remote branch
-    cur.execute("SELECT remote_booking_id, sessions_done, pulses_used FROM bookings WHERE id = ?", (booking_id,))
-    r_row = cur.fetchone()
-    if r_row and r_row[0]:
-        remote_bid, s_done, p_used = r_row[0], r_row[1], r_row[2]
-        other_url = os.getenv("OTHER_BRANCH_URL", "http://172.17.0.1:8090")
-        try:
-            import requests
-            requests.post(f"{other_url.rstrip('/')}/api/sync_remote_session", 
-                          json={"remote_booking_id": remote_bid, "sessions_done": s_done, "pulses_used": p_used}, 
-                          timeout=2)
-        except Exception:
-            pass
-
     conn.close()
+    
+    notify_remote_session_sync(booking_id)
     return redirect(request.referrer or url_for("index"))
 
 @booking_bp.route("/bookings/<int:booking_id>/pay", methods=["POST"])
