@@ -100,21 +100,24 @@ def search_other_branch():
     if not q:
         return jsonify({"status": "error", "message": "يرجى كتابة اسم أو رقم هاتف للبحث"})
 
-    this_port = str(os.getenv("PORT", "8091"))
-    
-    # Determine the target branch container and port based on current container's port
-    if "8091" in this_port:
-        # We are on Al Aboudi (8091) -> Target is Al Masala (8090)
-        target_container = "la_verde_almasala_app"
-        target_port = "8090"
-        default_other_name = "فرع المسلة"
-    else:
-        # We are on Al Masala (8090) -> Target is Al Aboudi (8091)
-        target_container = "la_verde_alaboudi_app"
-        target_port = "8091"
-        default_other_name = "فرع العبودي"
+    # Check explicit env vars first
+    target_container = os.getenv("OTHER_CONTAINER")
+    target_port = os.getenv("OTHER_PORT")
+    other_branch_name = os.getenv("OTHER_BRANCH_NAME")
 
-    other_branch_name = os.getenv("OTHER_BRANCH_NAME", default_other_name)
+    if not target_container or not target_port:
+        import socket
+        hostname = socket.gethostname().lower()
+        this_port = str(os.getenv("PORT", "8091"))
+        
+        if "aboudi" in hostname or "8091" in this_port:
+            target_container = "la_verde_almasala_app"
+            target_port = "8090"
+            other_branch_name = other_branch_name or "فرع المسلة"
+        else:
+            target_container = "la_verde_alaboudi_app"
+            target_port = "8091"
+            other_branch_name = other_branch_name or "فرع العبودي"
     custom_url = os.getenv("OTHER_BRANCH_URL", "").strip()
 
     candidate_urls = []
