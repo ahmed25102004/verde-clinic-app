@@ -147,7 +147,7 @@ def search_other_branch():
         f"http://127.0.0.1:{target_port}"
     ])
 
-    last_err = ""
+    errors = []
     for base_url in candidate_urls:
         try:
             url = f"{base_url}/api/remote_search?q={requests.utils.quote(q)}"
@@ -156,11 +156,14 @@ def search_other_branch():
                 data = resp.json()
                 data["other_branch_name"] = other_branch_name
                 return jsonify(data)
+            else:
+                errors.append(f"{base_url} (HTTP {resp.status_code})")
         except Exception as e:
-            last_err = str(e)
+            errors.append(f"{base_url} ({e})")
             continue
             
-    return jsonify({"status": "error", "message": f"تعذر الاتصال بـ {other_branch_name} ({last_err})"})
+    err_msg = " | ".join(errors[:2]) if errors else "تعذر الوصول"
+    return jsonify({"status": "error", "message": f"تعذر الاتصال بـ {other_branch_name}: {err_msg}"})
 
 @cross_branch_bp.route("/api/import_remote_customer", methods=["POST"])
 @login_required
