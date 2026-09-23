@@ -7,6 +7,11 @@ from datetime import datetime
 
 cross_branch_bp = Blueprint("cross_branch", __name__)
 
+def normalize_phone_str(p):
+    if not p: return ""
+    p = str(p).translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789'))
+    return "".join(c for c in p if c.isdigit())
+
 @cross_branch_bp.route("/api/remote_search", methods=["GET", "OPTIONS"])
 def remote_search():
     if request.method == "OPTIONS":
@@ -25,27 +30,37 @@ def remote_search():
     conn = get_conn()
     cur = conn.cursor()
     
-    digits_only = "".join(c for c in q if c.isdigit())
-    search_pattern = f"%{q}%"
-    digits_pattern = f"%{digits_only}%" if digits_only else search_pattern
-    
+    q_norm = q.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')).strip()
+    digits_only = "".join(c for c in q_norm if c.isdigit())
     stripped_digits = digits_only.lstrip('0') if digits_only.startswith('0') else digits_only
-    stripped_pattern = f"%{stripped_digits}%" if stripped_digits else search_pattern
     
-    cur.execute("""
-        SELECT c.id, c.name, c.phone, c.gender, c.note
-        FROM customers c
-        WHERE c.name LIKE ? 
-           OR c.phone LIKE ? 
-           OR (length(?) >= 3 AND c.phone LIKE ?)
-           OR (length(?) >= 3 AND c.phone LIKE ?)
-        LIMIT 20
-    """, (search_pattern, search_pattern, digits_only, digits_pattern, stripped_digits, stripped_pattern))
+    cur.execute("SELECT c.id, c.name, c.phone, c.gender, c.note FROM customers c")
+    all_customers = cur.fetchall()
     
-    customers = cur.fetchall()
+    matched_customers = []
+    for c in all_customers:
+        c_id, c_name, c_phone, c_gender, c_note = c[0], c[1] or "", c[2] or "", c[3], c[4]
+        c_phone_norm = normalize_phone_str(c_phone)
+        c_phone_stripped = c_phone_norm.lstrip('0') if c_phone_norm.startswith('0') else c_phone_norm
+        
+        is_match = False
+        if q_norm.lower() in c_name.lower():
+            is_match = True
+        elif q_norm in c_phone:
+            is_match = True
+        elif digits_only and len(digits_only) >= 3:
+            if digits_only in c_phone_norm or c_phone_norm in digits_only:
+                is_match = True
+            elif stripped_digits and len(stripped_digits) >= 3 and (stripped_digits in c_phone_stripped or c_phone_stripped in stripped_digits):
+                is_match = True
+
+        if is_match:
+            matched_customers.append(c)
+            if len(matched_customers) >= 20:
+                break
+
     results = []
-    
-    for c in customers:
+    for c in matched_customers:
         cust_id = c[0]
         cur.execute("""
             SELECT b.id, b.package_id, p.name, p.category, b.total_sessions, b.sessions_done, 

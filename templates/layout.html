@@ -261,7 +261,11 @@
                 .then(r => { if(!r.ok) throw new Error(); return r.json(); })
                 .catch(() => fetch("/api/search_other_branch?q=" + encodeURIComponent(v)).then(r => r.json()))
                 .then(data => {
-                  if (data.status === "error" || !data.results || data.results.length === 0) {
+                  if (data.status === "error") {
+                    topDropdown.innerHTML = '<div class="p-2 text-danger small text-center"><i class="bi bi-exclamation-triangle"></i> ' + (data.message || ('تعذر الاتصال بـ ' + targetName)) + '</div>';
+                    return;
+                  }
+                  if (!data.results || data.results.length === 0) {
                     topDropdown.innerHTML = '<div class="p-2 text-warning small text-center">لم يتم العثور على عميلات في ' + targetName + '</div>';
                     return;
                   }
