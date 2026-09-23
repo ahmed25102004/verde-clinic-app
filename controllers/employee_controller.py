@@ -159,6 +159,7 @@ def login():
                             cur.execute('DELETE FROM auth_failures WHERE ip=?', (ip,))
                         except Exception: pass
                         
+                        session.permanent = True
                         session["employee_id"] = row[0]
                         session["employee_name"] = row[1]
                         session["employee_role"] = row[3] or "employee"

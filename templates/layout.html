@@ -113,10 +113,21 @@
             <button class="btn btn-outline-light d-lg-none p-2" id="sidebarToggle">
               <i class="bi bi-list fs-4"></i>
             </button>
-            <form class="topbar-search d-none d-sm-block" action="/customer" method="get">
-              <i class="bi bi-search"></i>
-              <input type="search" name="q" placeholder="بحث بالاسم أو الموبايل..." value="{{ request.args.q or '' }}" />
-            </form>
+            <div class="d-flex align-items-center gap-2">
+              <!-- Local Search Box -->
+              <form class="topbar-search d-none d-sm-block" action="/customer" method="get">
+                <i class="bi bi-search"></i>
+                <input type="search" name="q" placeholder="بحث بالاسم أو الموبايل محلياً..." value="{{ request.args.q or '' }}" />
+              </form>
+
+              <!-- Other Branch Search Box -->
+              <div class="topbar-search d-none d-md-block position-relative" style="width: 280px;">
+                <i class="bi bi-arrow-repeat text-info"></i>
+                <input type="search" id="topbar_other_branch_input" placeholder="البحث في {{ 'فرع العبودي' if 'المسله' in (request.path or '') or '8090' in (request.host or '') else 'فرع المسلة' }}..." autocomplete="off" />
+                <div id="topbar_other_branch_dropdown" class="position-absolute w-100 bg-dark text-light border border-info rounded-3 shadow-lg p-2 mt-1 d-none" style="z-index: 9999; max-height: 350px; overflow-y: auto; right: 0;">
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="d-flex align-items-center gap-3">
@@ -222,6 +233,112 @@
       document.getElementById('sidebarToggle')?.addEventListener('click', function() {
         document.getElementById('appSidebar').classList.toggle('show');
       });
+
+      (function(){
+        const topInput = document.getElementById("topbar_other_branch_input");
+        const topDropdown = document.getElementById("topbar_other_branch_dropdown");
+        let timer = null;
+
+        if (topInput && topDropdown) {
+          topInput.addEventListener("input", function(){
+            clearTimeout(timer);
+            const v = topInput.value.trim();
+            if (!v) {
+              topDropdown.classList.add("d-none");
+              topDropdown.innerHTML = "";
+              return;
+            }
+
+            timer = setTimeout(function(){
+              topDropdown.classList.remove("d-none");
+              topDropdown.innerHTML = '<div class="text-center py-2 text-info"><div class="spinner-border spinner-border-sm me-1"></div> جاري الاستعلام...</div>';
+
+              let curPort = window.location.port || "80";
+              let targetPort = curPort === "8090" ? "8091" : (curPort === "8091" ? "8090" : "8091");
+              let targetName = curPort === "8090" ? "فرع العبودي" : "فرع المسلة";
+              let directUrl = window.location.protocol + "//" + window.location.hostname + ":" + targetPort + "/api/remote_search?q=" + encodeURIComponent(v);
+
+              fetch(directUrl)
+                .then(r => { if(!r.ok) throw new Error(); return r.json(); })
+                .catch(() => fetch("/api/search_other_branch?q=" + encodeURIComponent(v)).then(r => r.json()))
+                .then(data => {
+                  if (data.status === "error" || !data.results || data.results.length === 0) {
+                    topDropdown.innerHTML = '<div class="p-2 text-warning small text-center">لم يتم العثور على عميلات في ' + targetName + '</div>';
+                    return;
+                  }
+
+                  let html = '<div class="small fw-bold text-info border-bottom border-secondary pb-1 mb-2">نتائج ' + targetName + ':</div>';
+                  data.results.forEach(c => {
+                    html += `<div class="p-2 mb-2 bg-secondary bg-opacity-25 rounded border border-secondary">
+                      <div class="fw-bold text-white fs-7">👤 ${c.name}</div>
+                      <div class="text-muted small">${c.phone}</div>`;
+                    if (c.bookings && c.bookings.length > 0) {
+                      c.bookings.forEach(b => {
+                        html += `<div class="mt-1 d-flex justify-content-between align-items-center">
+                          <span class="small text-warning">📦 ${b.package_name} (${b.sessions_done}/${b.total_sessions})</span>
+                          <button class="btn btn-xs btn-success py-0 px-2 topbar-import-btn" 
+                            data-phone="${c.phone}" data-name="${c.name}" data-gender="${c.gender||'أنثى'}" data-note="${c.note||''}"
+                            data-pkg="${b.package_name}" data-cat="${b.category}" data-total="${b.total_sessions}" data-done="${b.sessions_done}"
+                            data-price="${b.price}" data-pulses-total="${b.pulses_total||0}" data-pulses-used="${b.pulses_used||0}"
+                            data-booking-id="${b.booking_id}" data-branch="${targetName}">
+                            ⚡ مزامنة
+                          </button>
+                        </div>`;
+                      });
+                    }
+                    html += `</div>`;
+                  });
+
+                  topDropdown.innerHTML = html;
+
+                  document.querySelectorAll(".topbar-import-btn").forEach(btn => {
+                    btn.addEventListener("click", function(){
+                      const bSelf = this;
+                      bSelf.disabled = true;
+                      bSelf.innerText = "...";
+                      const payload = {
+                        phone: bSelf.getAttribute("data-phone"),
+                        name: bSelf.getAttribute("data-name"),
+                        gender: bSelf.getAttribute("data-gender"),
+                        note: bSelf.getAttribute("data-note"),
+                        package_name: bSelf.getAttribute("data-pkg"),
+                        category: bSelf.getAttribute("data-cat"),
+                        total_sessions: bSelf.getAttribute("data-total"),
+                        sessions_done: bSelf.getAttribute("data-done"),
+                        price: bSelf.getAttribute("data-price"),
+                        pulses_total: bSelf.getAttribute("data-pulses-total"),
+                        pulses_used: bSelf.getAttribute("data-pulses-used"),
+                        booking_id: bSelf.getAttribute("data-booking-id"),
+                        branch_name: bSelf.getAttribute("data-branch")
+                      };
+                      fetch("/api/import_remote_customer", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify(payload)
+                      }).then(r => r.json()).then(res => {
+                        if (res.status === "success") {
+                          window.location.href = res.redirect_url;
+                        } else {
+                          alert(res.message || "خطأ بالمزامنة");
+                          bSelf.disabled = false;
+                        }
+                      });
+                    });
+                  });
+                })
+                .catch(err => {
+                  topDropdown.innerHTML = '<div class="p-2 text-danger small text-center">تعذر الاتصال بـ ' + targetName + '</div>';
+                });
+            }, 350);
+          });
+
+          document.addEventListener("click", function(e){
+            if (!topInput.contains(e.target) && !topDropdown.contains(e.target)) {
+              topDropdown.classList.add("d-none");
+            }
+          });
+        }
+      })();
     </script>
   </body>
 </html>

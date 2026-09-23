@@ -31,15 +31,14 @@ app = Flask(__name__)
 app.register_blueprint(cross_branch_bp)
 
 # Secret key configuration with persistent fallback
-secret_key = os.environ.get("POS_SECRET")
-if not secret_key:
-    secret_key = "la_verde_beauty_clinic_al_masala_secure_key_2026"
+secret_key = os.environ.get("POS_SECRET", "la_verde_clinic_permanent_secret_key_fixed_2026")
 app.secret_key = secret_key
 
 app.config.update(
+    PERMANENT_SESSION_LIFETIME=timedelta(days=365),
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE=os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax'),
-    SESSION_COOKIE_SECURE=(os.environ.get('USE_HTTPS', '0') == '1')
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=False
 )
 
 
