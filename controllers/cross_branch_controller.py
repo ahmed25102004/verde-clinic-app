@@ -26,87 +26,92 @@ def remote_search():
         resp = jsonify({"status": "success", "results": []})
         resp.headers["Access-Control-Allow-Origin"] = "*"
         return resp
-        
-    conn = get_conn()
-    cur = conn.cursor()
-    
-    q_norm = q.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')).strip()
-    digits_only = "".join(c for c in q_norm if c.isdigit())
-    stripped_digits = digits_only.lstrip('0') if digits_only.startswith('0') else digits_only
-    
-    cur.execute("SELECT c.id, c.name, c.phone, c.gender, c.note FROM customers c")
-    all_customers = cur.fetchall()
-    
-    matched_customers = []
-    for c in all_customers:
-        c_id, c_name, c_phone, c_gender, c_note = c[0], c[1] or "", c[2] or "", c[3], c[4]
-        c_phone_norm = normalize_phone_str(c_phone)
-        c_phone_stripped = c_phone_norm.lstrip('0') if c_phone_norm.startswith('0') else c_phone_norm
-        
-        is_match = False
-        if q_norm.lower() in c_name.lower():
-            is_match = True
-        elif q_norm in c_phone:
-            is_match = True
-        elif digits_only and len(digits_only) >= 3:
-            if digits_only in c_phone_norm or c_phone_norm in digits_only:
-                is_match = True
-            elif stripped_digits and len(stripped_digits) >= 3 and (stripped_digits in c_phone_stripped or c_phone_stripped in stripped_digits):
-                is_match = True
 
-        if is_match:
-            matched_customers.append(c)
-            if len(matched_customers) >= 20:
-                break
-
-    results = []
-    for c in matched_customers:
-        cust_id = c[0]
-        cur.execute("""
-            SELECT b.id, b.package_id, p.name, p.category, b.total_sessions, b.sessions_done, 
-                   COALESCE(b.price_override, p.price) as price, b.pulses_total, b.pulses_used, b.start_date
-            FROM bookings b
-            JOIN packages p ON p.id = b.package_id
-            WHERE b.customer_id = ?
-        """, (cust_id,))
-        b_rows = cur.fetchall()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
         
-        bookings_list = []
-        for b in b_rows:
-            bookings_list.append({
-                "booking_id": b[0],
-                "package_id": b[1],
-                "package_name": b[2],
-                "category": b[3],
-                "total_sessions": b[4],
-                "sessions_done": b[5],
-                "price": b[6],
-                "pulses_total": b[7],
-                "pulses_used": b[8],
-                "start_date": b[9]
+        q_norm = q.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')).strip()
+        digits_only = "".join(c for c in q_norm if c.isdigit())
+        stripped_digits = digits_only.lstrip('0') if digits_only.startswith('0') else digits_only
+        
+        cur.execute("SELECT c.id, c.name, c.phone, c.note FROM customers c")
+        all_customers = cur.fetchall()
+        
+        matched_customers = []
+        for c in all_customers:
+            c_id, c_name, c_phone, c_note = c[0], c[1] or "", c[2] or "", c[3] or ""
+            c_phone_norm = normalize_phone_str(c_phone)
+            c_phone_stripped = c_phone_norm.lstrip('0') if c_phone_norm.startswith('0') else c_phone_norm
+            
+            is_match = False
+            if q_norm.lower() in c_name.lower():
+                is_match = True
+            elif q_norm in c_phone:
+                is_match = True
+            elif digits_only and len(digits_only) >= 3:
+                if digits_only in c_phone_norm or c_phone_norm in digits_only:
+                    is_match = True
+                elif stripped_digits and len(stripped_digits) >= 3 and (stripped_digits in c_phone_stripped or c_phone_stripped in stripped_digits):
+                    is_match = True
+
+            if is_match:
+                matched_customers.append((c_id, c_name, c_phone, c_note))
+                if len(matched_customers) >= 20:
+                    break
+
+        results = []
+        for c in matched_customers:
+            cust_id = c[0]
+            cur.execute("""
+                SELECT b.id, b.package_id, p.name, p.category, b.total_sessions, b.sessions_done, 
+                       COALESCE(b.price_override, p.price) as price, b.pulses_total, b.pulses_used, b.start_date
+                FROM bookings b
+                JOIN packages p ON p.id = b.package_id
+                WHERE b.customer_id = ?
+            """, (cust_id,))
+            b_rows = cur.fetchall()
+            
+            bookings_list = []
+            for b in b_rows:
+                bookings_list.append({
+                    "booking_id": b[0],
+                    "package_id": b[1],
+                    "package_name": b[2],
+                    "category": b[3],
+                    "total_sessions": b[4],
+                    "sessions_done": b[5],
+                    "price": b[6],
+                    "pulses_total": b[7],
+                    "pulses_used": b[8],
+                    "start_date": b[9]
+                })
+                
+            results.append({
+                "customer_id": c[0],
+                "name": c[1],
+                "phone": c[2],
+                "gender": "أنثى",
+                "note": c[3] or "",
+                "bookings": bookings_list
             })
             
-        results.append({
-            "customer_id": c[0],
-            "name": c[1],
-            "phone": c[2],
-            "gender": c[3] or "أنثى",
-            "note": c[4] or "",
-            "bookings": bookings_list
-        })
+        conn.close()
         
-    conn.close()
-    
-    this_port = str(os.getenv("PORT", "8090"))
-    branch_default = "فرع المسلة" if "8090" in this_port else "فرع العبودي"
-    
-    resp = jsonify({
-        "status": "success",
-        "branch_name": os.getenv("THIS_BRANCH_NAME", branch_default),
-        "results": results
-    })
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    return resp
+        this_port = str(os.getenv("PORT", "8090"))
+        branch_default = "فرع المسلة" if "8090" in this_port else "فرع العبودي"
+        
+        resp = jsonify({
+            "status": "success",
+            "branch_name": os.getenv("THIS_BRANCH_NAME", branch_default),
+            "results": results
+        })
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp
+    except Exception as e:
+        resp = jsonify({"status": "error", "message": f"خطأ في قاعدة بيانات الفرع: {str(e)}"})
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp, 200
 
 @cross_branch_bp.route("/api/search_other_branch", methods=["GET"])
 @login_required
