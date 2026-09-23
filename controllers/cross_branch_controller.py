@@ -62,11 +62,13 @@ def remote_search():
         })
         
     conn.close()
-    return jsonify({
+    resp = jsonify({
         "status": "success",
         "branch_name": os.getenv("THIS_BRANCH_NAME", "الفرع الآخر"),
         "results": results
     })
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    return resp
 
 @cross_branch_bp.route("/api/search_other_branch", methods=["GET"])
 @login_required

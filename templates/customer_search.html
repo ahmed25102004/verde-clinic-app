@@ -92,8 +92,16 @@
                 <p class="mt-2 text-muted">جاري التوصيل بالفرع الآخر واستعلام البيانات...</p>
               </div>`;
 
-            fetch("/api/search_other_branch?q=" + encodeURIComponent(v))
-              .then((res) => res.json())
+            let curPort = window.location.port || "80";
+            let targetPort = curPort === "8090" ? "8091" : (curPort === "8091" ? "8090" : "8091");
+            let directUrl = window.location.protocol + "//" + window.location.hostname + ":" + targetPort + "/api/remote_search?q=" + encodeURIComponent(v);
+
+            fetch(directUrl)
+              .then((res) => {
+                if (!res.ok) throw new Error("direct failed");
+                return res.json();
+              })
+              .catch(() => fetch("/api/search_other_branch?q=" + encodeURIComponent(v)).then((r) => r.json()))
               .then((data) => {
                 if (data.status === "error") {
                   bodyEl.innerHTML = `<div class="alert alert-warning">${data.message}</div>`;
