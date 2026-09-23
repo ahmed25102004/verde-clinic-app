@@ -15,13 +15,16 @@ def remote_search():
         
     conn = get_conn()
     cur = conn.cursor()
+    digits_only = "".join(c for c in q if c.isdigit())
     search_pattern = f"%{q}%"
+    digits_pattern = f"%{digits_only}%" if digits_only else search_pattern
+    
     cur.execute("""
         SELECT c.id, c.name, c.phone, c.gender, c.note
         FROM customers c
-        WHERE c.name LIKE ? OR c.phone LIKE ?
+        WHERE c.name LIKE ? OR c.phone LIKE ? OR (length(?) >= 3 AND c.phone LIKE ?)
         LIMIT 20
-    """, (search_pattern, search_pattern))
+    """, (search_pattern, search_pattern, digits_only, digits_pattern))
     
     customers = cur.fetchall()
     results = []
