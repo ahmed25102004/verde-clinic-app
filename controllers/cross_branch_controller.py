@@ -65,7 +65,8 @@ def remote_search():
             cust_id = c[0]
             cur.execute("""
                 SELECT b.id, b.package_id, p.name, p.category, b.total_sessions, b.sessions_done, 
-                       COALESCE(b.price_override, p.price) as price, b.pulses_total, b.pulses_used, b.start_date
+                       COALESCE(b.price_override, p.price) as price, b.pulses_total, b.pulses_used, b.start_date,
+                       ((SELECT COALESCE(SUM(pay.amount), 0) FROM payments pay WHERE pay.booking_id = b.id) + COALESCE(b.remote_paid_initial, 0)) as total_paid
                 FROM bookings b
                 JOIN packages p ON p.id = b.package_id
                 WHERE b.customer_id = ?
@@ -84,7 +85,8 @@ def remote_search():
                     "price": b[6],
                     "pulses_total": b[7],
                     "pulses_used": b[8],
-                    "start_date": b[9]
+                    "start_date": b[9],
+                    "remote_paid": b[10]
                 })
                 
             results.append({
@@ -188,6 +190,7 @@ def import_remote_customer():
         pulses_used = int(data.get("pulses_used", 0))
         remote_booking_id = data.get("booking_id")
         remote_branch_name = data.get("branch_name", os.getenv("OTHER_BRANCH_NAME", "الفرع الآخر"))
+        remote_paid_initial = int(data.get("remote_paid", 0))
 
         if not phone or not name:
             return jsonify({"status": "error", "message": "بيانات العميل غير مكتملة"})
@@ -218,9 +221,9 @@ def import_remote_customer():
                 new_done = max(existing_b[1], sessions_done)
                 cur.execute("""
                     UPDATE bookings 
-                    SET sessions_done = ?, pulses_used = MAX(pulses_used, ?)
+                    SET sessions_done = ?, pulses_used = MAX(pulses_used, ?), remote_paid_initial = MAX(remote_paid_initial, ?)
                     WHERE id = ?
-                """, (new_done, pulses_used, b_id))
+                """, (new_done, pulses_used, remote_paid_initial, b_id))
                 conn.commit()
                 conn.close()
                 return jsonify({
@@ -239,16 +242,16 @@ def import_remote_customer():
                         (category, pkg_name, total_sessions, price, f"من {remote_branch_name}"))
             pkg_id = cur.lastrowid
 
-        # 3. Create Local Booking
+        # 4. Create Local Booking
         today_str = datetime.now().strftime("%Y-%m-%d")
         emp_id = session.get("employee_id")
         
         cur.execute("""
             INSERT INTO bookings (customer_id, package_id, total_sessions, sessions_done, start_date, employee_id,
-                                  pulses_total, pulses_used, price_override, remote_booking_id, remote_branch_name)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                                  pulses_total, pulses_used, price_override, remote_booking_id, remote_branch_name, remote_paid_initial)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
         """, (cust_id, pkg_id, total_sessions, sessions_done, today_str, emp_id,
-              pulses_total, pulses_used, price, remote_booking_id, remote_branch_name))
+              pulses_total, pulses_used, price, remote_booking_id, remote_branch_name, remote_paid_initial))
         
         conn.commit()
         conn.close()

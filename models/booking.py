@@ -33,7 +33,7 @@ class Booking(BaseModel):
             b.id, b.customer_id, b.package_id, p.name as package_name, 
             b.total_sessions, b.sessions_done, b.start_date, 
             p.price, b.price_override, b.pulses_total, b.pulses_used,
-            b.next_session_date
+            b.next_session_date, b.remote_branch_name, b.remote_paid_initial
         FROM bookings b
         LEFT JOIN packages p ON b.package_id = p.id
         WHERE b.customer_id = ?
@@ -54,11 +54,13 @@ class Booking(BaseModel):
                 "sessions_done": row[5],
                 "start_date": row[6],
                 "price": row[7],
-                "package_price": row[7],
+                "package_price": row[8] if row[8] is not None else row[7],
                 "price_override": row[8],
                 "pulses_total": row[9],
                 "pulses_used": row[10],
-                "next_session_date": row[11]
+                "next_session_date": row[11],
+                "remote_branch_name": row[12],
+                "remote_paid_initial": row[13] or 0
             }
             bookings.append(booking_dict)
         return bookings

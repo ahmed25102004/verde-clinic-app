@@ -120,6 +120,11 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    try:
+        cur.execute("ALTER TABLE bookings ADD COLUMN remote_paid_initial INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

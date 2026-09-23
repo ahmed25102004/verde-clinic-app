@@ -283,7 +283,7 @@
                             data-phone="${c.phone}" data-name="${c.name}" data-gender="${c.gender||'أنثى'}" data-note="${c.note||''}"
                             data-pkg="${b.package_name}" data-cat="${b.category}" data-total="${b.total_sessions}" data-done="${b.sessions_done}"
                             data-price="${b.price}" data-pulses-total="${b.pulses_total||0}" data-pulses-used="${b.pulses_used||0}"
-                            data-booking-id="${b.booking_id}" data-branch="${targetName}">
+                            data-booking-id="${b.booking_id}" data-remote-paid="${b.remote_paid||0}" data-branch="${targetName}">
                             ⚡ مزامنة
                           </button>
                         </div>`;
@@ -312,6 +312,7 @@
                         pulses_total: bSelf.getAttribute("data-pulses-total"),
                         pulses_used: bSelf.getAttribute("data-pulses-used"),
                         booking_id: bSelf.getAttribute("data-booking-id"),
+                        remote_paid: bSelf.getAttribute("data-remote-paid"),
                         branch_name: bSelf.getAttribute("data-branch")
                       };
                       fetch("/api/import_remote_customer", {

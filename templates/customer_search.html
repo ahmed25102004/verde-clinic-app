@@ -144,6 +144,7 @@
                           data-pulses-total="${b.pulses_total || 0}"
                           data-pulses-used="${b.pulses_used || 0}"
                           data-booking-id="${b.booking_id}"
+                          data-remote-paid="${b.remote_paid || 0}"
                           data-branch="${otherName}">
                           ⚡ مزامنة وتسجيل جلسة هنا
                         </button>
@@ -177,6 +178,7 @@
                       pulses_total: btnSelf.getAttribute("data-pulses-total"),
                       pulses_used: btnSelf.getAttribute("data-pulses-used"),
                       booking_id: btnSelf.getAttribute("data-booking-id"),
+                      remote_paid: btnSelf.getAttribute("data-remote-paid"),
                       branch_name: btnSelf.getAttribute("data-branch"),
                     };
 
