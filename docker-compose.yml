@@ -1,13 +1,24 @@
 services:
-  la_verde_almasala:
+  la_verde_booking:
     build: .
-    container_name: la_verde_almasala_app
+    container_name: la_verde_booking_app
     ports:
-      - "${PORT:-8090}:5007"
-    env_file:
-      - .env
+      - "${PORT:-8092}:5007"
+    environment:
+      - PORT=8092
+      - THIS_BRANCH_KEY=booking_system
+      - THIS_BRANCH_NAME=نظام الحجوزات والحجوزات العكسية
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
       - ./exports:/app/exports
+    networks:
+      - la_verde_net
     restart: unless-stopped
+
+networks:
+  la_verde_net:
+    name: la_verde_net
+    external: true

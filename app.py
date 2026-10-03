@@ -27,6 +27,7 @@ from controllers.expense_controller import expense_bp
 from controllers.whatsapp_controller import whatsapp_bp
 
 app = Flask(__name__)
+init_db()
 
 # Secret key configuration with persistent fallback
 secret_key = os.environ.get("POS_SECRET")
