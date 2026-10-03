@@ -7,7 +7,7 @@ services:
     environment:
       - PORT=8092
       - THIS_BRANCH_KEY=booking_system
-      - THIS_BRANCH_NAME=نظام الحجوزات والحجوزات العكسية
+      - THIS_BRANCH_NAME=نظام الحجوزات والحسابات لمركز التجميل
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
