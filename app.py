@@ -28,6 +28,7 @@ from controllers.whatsapp_controller import whatsapp_bp
 from controllers.cross_branch_controller import cross_branch_bp
 
 app = Flask(__name__)
+init_db()
 app.register_blueprint(cross_branch_bp)
 
 # Secret key configuration with persistent fallback
