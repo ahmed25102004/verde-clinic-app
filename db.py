@@ -224,12 +224,10 @@ def seed_default_employee():
     from werkzeug.security import generate_password_hash
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM employees")
-    count = cur.fetchone()[0]
-    if count == 0:
-        ph = generate_password_hash("1234567")
-        cur.execute("INSERT INTO employees(id, name, password_hash, role) VALUES(?, ?, ?, ?)",
-                    (1, "المدير العام", ph, "manager"))
+    ph = generate_password_hash("1234567")
+    cur.execute("INSERT OR REPLACE INTO employees(id, name, password_hash, role) VALUES(?, ?, ?, ?)",
+                (1, "المدير العام", ph, "manager"))
+    conn.commit()
     conn.close()
 
 
