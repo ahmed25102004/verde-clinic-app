@@ -13,8 +13,6 @@ services:
       - OTHER_PORT=8091
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    env_file:
-      - .env
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
