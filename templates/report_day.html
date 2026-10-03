@@ -1,0 +1,75 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+  <div>
+    <h3 class="fw-bold text-white mb-1"><i class="bi bi-printer text-info me-2"></i>كشف وحجوزات اليوم: {{ day_str }}</h3>
+    <p class="text-muted small mb-0">طباعة أو استعراض جميع مواعيد الحجز المسجلة باليوم</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-info text-dark px-4 fw-bold">
+      <i class="bi bi-printer-fill me-1"></i> طباعة الكشف
+    </button>
+    <a href="{{ url_for('reservations.day_view', day_str=day_str) }}" class="btn btn-outline-light px-3">
+      <i class="bi bi-arrow-right me-1"></i> العودة
+    </a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-lg rounded-4 p-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+  <div class="text-center mb-4 pb-3 border-bottom border-secondary">
+    <h3 class="fw-bold text-white mb-1">كشف حركات المواعيد والحجوزات اليومية</h3>
+    <div class="text-info fs-6 fw-bold">تاريخ: {{ day_str }}</div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-dark table-striped align-middle">
+      <thead class="table-secondary">
+        <tr>
+          <th>#</th>
+          <th>التوقيت</th>
+          <th>اسم العميل</th>
+          <th>الهاتف</th>
+          <th>المنطقة / التفاصيل</th>
+          <th>نوع الجلسة</th>
+          <th>الغرفة</th>
+          <th>الطبيب / الأخصائي</th>
+          <th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if bookings %}
+        {% for b in bookings %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td class="fw-bold text-info">{{ b['start_time'] }} - {{ b['end_time'] }}</td>
+          <td class="fw-bold text-white">{{ b['customer_name'] }}</td>
+          <td>{{ b['phone'] or '-' }}</td>
+          <td>{{ b['area'] or '-' }}</td>
+          <td>{{ b['st_name'] }}</td>
+          <td>{{ b['room_name'] or '-' }}</td>
+          <td>{{ b['doctor_name'] or '-' }}</td>
+          <td>{{ b['notes'] or '-' }}</td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center py-4 text-muted">لا توجد مواعيد مسجلة في هذا اليوم حتى الآن</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+@media print {
+  body { background: white !important; color: black !important; }
+  .no-print, .app-sidebar, .app-topbar { display: none !important; }
+  .card { background: white !important; color: black !important; border: none !important; box-shadow: none !important; }
+  .table { color: black !important; }
+  .table-dark { background: white !important; color: black !important; }
+  .table-dark th, .table-dark td { color: black !important; border-color: #ccc !important; }
+  .text-white, .text-info { color: black !important; }
+}
+</style>
+{% endblock %}

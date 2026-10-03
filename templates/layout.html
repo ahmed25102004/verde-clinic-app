@@ -28,16 +28,47 @@
 
           <!-- Navigation Links -->
           <nav class="sidebar-menu">
-            <!-- Main Section -->
-            <div class="sidebar-section-title">العمليات الرئيسية</div>
+            <!-- Section 1: Reservations System -->
+            <div class="sidebar-section-title">جدول الحجوزات والمواعيد</div>
+            <a href="{{ url_for('reservations.calendar') }}" class="sidebar-link {% if '/reservations' in request.path and '/doctors' not in request.path and '/rooms' not in request.path and '/session_types' not in request.path and '/waitlist' not in request.path and '/downtimes' not in request.path and '/report_day' not in request.path %}active{% endif %}">
+              <i class="bi bi-calendar3"></i>
+              <span>التقويم والمواعيد</span>
+            </a>
+            <a href="{{ url_for('reservations.doctors') }}" class="sidebar-link {% if '/reservations/doctors' in request.path %}active{% endif %}">
+              <i class="bi bi-person-badge"></i>
+              <span>الأطباء والأخصائيين</span>
+            </a>
+            <a href="{{ url_for('reservations.rooms') }}" class="sidebar-link {% if '/reservations/rooms' in request.path %}active{% endif %}">
+              <i class="bi bi-door-closed"></i>
+              <span>العيادات والغرف</span>
+            </a>
+            <a href="{{ url_for('reservations.session_types') }}" class="sidebar-link {% if '/reservations/session_types' in request.path %}active{% endif %}">
+              <i class="bi bi-stopwatch"></i>
+              <span>مدة الجلسات</span>
+            </a>
+            <a href="{{ url_for('reservations.waitlist') }}" class="sidebar-link {% if '/reservations/waitlist' in request.path %}active{% endif %}">
+              <i class="bi bi-clock-history"></i>
+              <span>قائمة الانتظار</span>
+            </a>
+            <a href="{{ url_for('reservations.downtimes') }}" class="sidebar-link {% if '/reservations/downtimes' in request.path %}active{% endif %}">
+              <i class="bi bi-slash-circle"></i>
+              <span>الأوقات المحجوبة</span>
+            </a>
+            <a href="{{ url_for('reservations.report_day') }}" class="sidebar-link {% if '/reservations/report_day' in request.path %}active{% endif %}">
+              <i class="bi bi-printer"></i>
+              <span>كشف المواعيد اليومي</span>
+            </a>
+
+            <!-- Section 2: Financials & Packages -->
+            <div class="sidebar-section-title">الحسابات والمالية والباكدجات</div>
             <a href="{{ url_for('index') }}" class="sidebar-link {% if request.path == '/' %}active{% endif %}">
-              <i class="bi bi-house-door"></i>
-              <span>الرئيسية (الباكدجات)</span>
+              <i class="bi bi-box"></i>
+              <span>الباكدجات والاشتراكات</span>
             </a>
             {% if session.employee_role == 'manager' %}
             <a href="{{ url_for('report.dashboard') }}" class="sidebar-link {% if request.path == '/dashboard' %}active{% endif %}">
               <i class="bi bi-grid-1x2"></i>
-              <span>لوحة التحكم</span>
+              <span>لوحة التحكم المالية</span>
             </a>
             {% endif %}
             <a href="{{ url_for('booking.quick_session') }}" class="sidebar-link {% if request.path == '/quick_session' %}active{% endif %}">
@@ -45,16 +76,15 @@
               <span>جلسة سريعة</span>
             </a>
 
-            <!-- Management Section -->
-            <div class="sidebar-section-title">إدارة العيادة</div>
+            <div class="sidebar-section-title">إدارة العملاء والنظام</div>
             {% if session.employee_role == 'manager' %}
-            <a href="{{ url_for('report.customers_list') }}" class="sidebar-link {% if request.path == '/customers' %}active{% endif %}">
+            <a href="{{ url_for('report.customers_list') }}" class="sidebar-link {% if request.path == '/customers' or '/customer' in request.path %}active{% endif %}">
               <i class="bi bi-people"></i>
               <span>قائمة العملاء</span>
             </a>
             {% endif %}
             <a href="{{ url_for('employee.employees') }}" class="sidebar-link {% if request.path == '/employees' %}active{% endif %}">
-              <i class="bi bi-person-badge"></i>
+              <i class="bi bi-person-vcard"></i>
               <span>فريق الموظفين</span>
             </a>
             <a href="{{ url_for('report.packages_admin') }}" class="sidebar-link {% if request.path == '/packages' %}active{% endif %}">
@@ -65,9 +95,6 @@
               <i class="bi bi-wallet2"></i>
               <span>المصروفات</span>
             </a>
-
-            <!-- Reports & Settings -->
-            <div class="sidebar-section-title">التقارير والنظام</div>
             <a href="{{ url_for('report.report_daily') }}" class="sidebar-link {% if request.path == '/report' %}active{% endif %}">
               <i class="bi bi-bar-chart-line"></i>
               <span>التقارير والتحليلات</span>
@@ -75,10 +102,6 @@
             <a href="{{ url_for('whatsapp.whatsapp_settings_page') }}" class="sidebar-link {% if request.path == '/settings/whatsapp' %}active{% endif %}">
               <i class="bi bi-whatsapp"></i>
               <span>إعدادات الواتساب</span>
-            </a>
-            <a href="{{ url_for('report.exports_list') }}" class="sidebar-link {% if request.path == '/exports' %}active{% endif %}">
-              <i class="bi bi-file-earmark-excel"></i>
-              <span>تصدير ملفات الإكسل</span>
             </a>
             {% if session.employee_role == 'manager' %}
             <a href="{{ url_for('backup.backups_list') }}" class="sidebar-link {% if request.path == '/backups' %}active{% endif %}">

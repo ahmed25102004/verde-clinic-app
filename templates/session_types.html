@@ -1,0 +1,61 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold text-white mb-1"><i class="bi bi-stopwatch text-info me-2"></i>أنواع المدة الزمنية للجلسات</h3>
+    <p class="text-muted small mb-0">تحديد المدد الزمنية المتاحة للجلسات لحساب خانات المواعيد المتاحة تلقائياً بالتقويم</p>
+  </div>
+  <button class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addTypeModal">
+    <i class="bi bi-plus-circle me-1"></i> إضافة نوع مدة جديدة
+  </button>
+</div>
+
+<div class="row g-4">
+  {% for t in types %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card border-0 shadow-lg rounded-4 p-4 d-flex flex-row justify-content-between align-items-center" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-info bg-opacity-20 text-info p-3 rounded-circle fs-4">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div>
+          <h5 class="fw-bold text-white mb-1">{{ t['name'] }}</h5>
+          <span class="badge bg-primary rounded-pill px-3 py-1">{{ t['duration_minutes'] }} دقيقة</span>
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('reservations.delete_session_type', t_id=t['id']) }}" onsubmit="return confirm('هل أنت تأكيد حذف نوع الجلسة هذا؟')">
+        <button type="submit" class="btn btn-xs btn-outline-danger p-2 rounded-3" title="حذف"><i class="bi bi-trash fs-6"></i></button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal for Adding Session Type -->
+<div class="modal fade" id="addTypeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-white border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-info fw-bold"><i class="bi bi-stopwatch me-2"></i>إضافة مدة جديدة للجلسات</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{{ url_for('reservations.session_types') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small">اسم نوع الجلسة *</label>
+            <input type="text" name="name" class="form-control bg-dark text-white border-secondary-subtle" required placeholder="مثال: جلسة استشارة سريعة" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small">المدة بالدقائق *</label>
+            <input type="number" name="duration_minutes" class="form-control bg-dark text-white border-secondary-subtle" required placeholder="مثال: 45" />
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="submit" class="btn btn-primary px-4 fw-bold">حفظ النوع</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

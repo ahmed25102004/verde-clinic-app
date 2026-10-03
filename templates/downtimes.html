@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold text-white mb-1"><i class="bi bi-slash-circle text-info me-2"></i>الأوقات المحجوبة والراحة</h3>
+    <p class="text-muted small mb-0">حجب غرف أو أوقات محددة من جدول المواعيد المتاحة (صيانة / راحة دكاترة / تعقيم)</p>
+  </div>
+  <button class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addDowntimeModal">
+    <i class="bi bi-plus-circle me-1"></i> حجب وقت جديد
+  </button>
+</div>
+
+<div class="card border-0 shadow-lg rounded-4 overflow-hidden" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+  <div class="table-responsive">
+    <table class="table table-dark table-hover align-middle mb-0">
+      <thead class="table-secondary">
+        <tr>
+          <th>التاريخ</th>
+          <th>الوقت المحجوب</th>
+          <th>الغرفة / العيادة</th>
+          <th class="text-center">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if downtimes %}
+        {% for d in downtimes %}
+        <tr>
+          <td class="fw-bold text-info"><i class="bi bi-calendar-event me-1"></i>{{ d['day'] }}</td>
+          <td class="fw-bold text-warning"><i class="bi bi-clock me-1"></i>{{ d['start_time'] }} - {{ d['end_time'] }}</td>
+          <td class="text-white">{{ d['room_name'] }}</td>
+          <td class="text-center">
+            <form method="post" action="{{ url_for('reservations.delete_downtime', d_id=d['id']) }}" class="d-inline" onsubmit="return confirm('هل أنت تأكيد إلغاء حجب هذا الوقت؟')">
+              <button type="submit" class="btn btn-xs btn-outline-danger" title="إلغاء الحجب"><i class="bi bi-trash me-1"></i> إلغاء الحجب</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center py-4 text-muted">لا توجد أوقات محجوبة مسجلة حالياً</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal for Adding Downtime -->
+<div class="modal fade" id="addDowntimeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-white border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-info fw-bold"><i class="bi bi-slash-circle me-2"></i>حجب وقت / غرفة</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{{ url_for('reservations.downtimes') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small">الغرفة / العيادة *</label>
+            <select name="room_id" class="form-select bg-dark text-white border-secondary-subtle" required>
+              <option value="">اختيار الغرفة...</option>
+              {% for r in rooms %}
+              <option value="{{ r['id'] }}">{{ r['name'] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small">التاريخ *</label>
+            <input type="date" name="day" class="form-control bg-dark text-white border-secondary-subtle" required />
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label text-secondary fw-semibold small">من الساعة *</label>
+              <input type="time" name="start_time" class="form-control bg-dark text-white border-secondary-subtle" value="13:00" required />
+            </div>
+            <div class="col-6">
+              <label class="form-label text-secondary fw-semibold small">إلى الساعة *</label>
+              <input type="time" name="end_time" class="form-control bg-dark text-white border-secondary-subtle" value="14:00" required />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="submit" class="btn btn-primary px-4 fw-bold">تأكيد حجب الوقت</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

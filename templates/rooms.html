@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold text-white mb-1"><i class="bi bi-door-closed text-info me-2"></i>إدارة العيادات والغرف</h3>
+    <p class="text-muted small mb-0">إضافة وتعديل غرف الكشف وعيادات الليزر والتجميل بالنظام</p>
+  </div>
+  <button class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addRoomModal">
+    <i class="bi bi-plus-circle me-1"></i> إضافة غرفة جديدة
+  </button>
+</div>
+
+<div class="row g-4">
+  {% for r in rooms %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card border-0 shadow-lg rounded-4 p-4 d-flex flex-row justify-content-between align-items-center" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-primary bg-opacity-20 text-info p-3 rounded-circle fs-4">
+          <i class="bi bi-door-open"></i>
+        </div>
+        <div>
+          <h5 class="fw-bold text-white mb-1">{{ r['name'] }}</h5>
+          <small class="text-muted">المركز الرئيسي</small>
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('reservations.delete_room', r_id=r['id']) }}" onsubmit="return confirm('هل أنت تأكيد حذف هذه الغرفة؟')">
+        <button type="submit" class="btn btn-xs btn-outline-danger p-2 rounded-3" title="حذف الغرفة"><i class="bi bi-trash fs-6"></i></button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal for Adding Room -->
+<div class="modal fade" id="addRoomModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-white border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-info fw-bold"><i class="bi bi-door-open me-2"></i>إضافة غرفة / عيادة جديدة</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{{ url_for('reservations.rooms') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small">اسم الغرفة / العيادة *</label>
+            <input type="text" name="name" class="form-control bg-dark text-white border-secondary-subtle" required placeholder="مثال: غرفة 4 (تخسيس)" />
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="submit" class="btn btn-primary px-4 fw-bold">حفظ الغرفة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

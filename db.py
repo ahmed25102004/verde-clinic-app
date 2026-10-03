@@ -196,11 +196,153 @@ def init_db():
     )
     """)
 
+    # Reservation & Appointment System Tables
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS centers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS rooms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        center_id INTEGER NOT NULL DEFAULT 1,
+        name TEXT NOT NULL,
+        FOREIGN KEY(center_id) REFERENCES centers(id) ON DELETE CASCADE
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS session_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        duration_minutes INTEGER NOT NULL
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS doctors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        available_days TEXT,
+        start_time TEXT,
+        end_time TEXT,
+        phone TEXT,
+        color TEXT DEFAULT '#0d6efd'
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS doctor_rooms (
+        doctor_id INTEGER NOT NULL,
+        room_id INTEGER NOT NULL,
+        PRIMARY KEY(doctor_id, room_id),
+        FOREIGN KEY(doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+        FOREIGN KEY(room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS calendar_bookings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        center_id INTEGER NOT NULL DEFAULT 1,
+        room_id INTEGER,
+        customer_name TEXT NOT NULL,
+        area TEXT,
+        phone TEXT,
+        session_type_id INTEGER NOT NULL,
+        day TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        notes TEXT,
+        created_by INTEGER,
+        doctor_id INTEGER,
+        FOREIGN KEY(center_id) REFERENCES centers(id),
+        FOREIGN KEY(room_id) REFERENCES rooms(id),
+        FOREIGN KEY(session_type_id) REFERENCES session_types(id)
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS working_hours (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        center_id INTEGER,
+        resource_type TEXT,
+        resource_id INTEGER,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS downtimes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        resource_type TEXT NOT NULL,
+        resource_id INTEGER NOT NULL,
+        day TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS waitlist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        center_id INTEGER NOT NULL DEFAULT 1,
+        customer_name TEXT NOT NULL,
+        phone TEXT,
+        session_type_id INTEGER NOT NULL,
+        day TEXT NOT NULL,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(center_id) REFERENCES centers(id) ON DELETE CASCADE,
+        FOREIGN KEY(session_type_id) REFERENCES session_types(id) ON DELETE CASCADE
+    )
+    """)
+
     conn.commit()
     conn.close()
 
     seed_packages()
     seed_default_employee()
+    seed_reservation_defaults()
+
+
+def seed_reservation_defaults():
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM centers")
+    if cur.fetchone()[0] == 0:
+        cur.execute("INSERT INTO centers (name) VALUES (?)", ("مركز التجميل والعناية",))
+        conn.commit()
+        
+    cur.execute("SELECT id FROM centers ORDER BY id LIMIT 1")
+    c_row = cur.fetchone()
+    center_id = c_row[0] if c_row else 1
+    
+    cur.execute("SELECT COUNT(*) FROM rooms")
+    if cur.fetchone()[0] == 0:
+        rooms_data = [
+            (center_id, "غرفة 1 (ليزر)"),
+            (center_id, "غرفة 2 (بشرة وتجميل)"),
+            (center_id, "غرفة 3 (استشارات وفحص)")
+        ]
+        cur.executemany("INSERT INTO rooms (center_id, name) VALUES (?, ?)", rooms_data)
+        conn.commit()
+
+    cur.execute("SELECT COUNT(*) FROM session_types")
+    if cur.fetchone()[0] == 0:
+        types_data = [
+            ("جلسة 30 دقيقة", 30),
+            ("جلسة 60 دقيقة", 60),
+            ("جلسة 90 دقيقة", 90)
+        ]
+        cur.executemany("INSERT INTO session_types (name, duration_minutes) VALUES (?, ?)", types_data)
+        conn.commit()
+    conn.close()
 
 
 def seed_default_employee():

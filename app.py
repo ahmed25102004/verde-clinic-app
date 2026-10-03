@@ -25,6 +25,7 @@ from controllers.report_controller import report_bp
 from controllers.backup_controller import backup_bp
 from controllers.expense_controller import expense_bp
 from controllers.whatsapp_controller import whatsapp_bp
+from controllers.reservations_controller import reservations_bp
 
 app = Flask(__name__)
 init_db()
@@ -185,6 +186,7 @@ app.register_blueprint(report_bp)
 app.register_blueprint(backup_bp)
 app.register_blueprint(expense_bp)
 app.register_blueprint(whatsapp_bp)
+app.register_blueprint(reservations_bp)
 
 # ------------------------------
 # Customer Controller URL Rules
