@@ -238,11 +238,21 @@ def init_db():
     CREATE TABLE IF NOT EXISTS doctor_rooms (
         doctor_id INTEGER NOT NULL,
         room_id INTEGER NOT NULL,
+        start_time TEXT,
+        end_time TEXT,
         PRIMARY KEY(doctor_id, room_id),
         FOREIGN KEY(doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
         FOREIGN KEY(room_id) REFERENCES rooms(id) ON DELETE CASCADE
     )
     """)
+
+    # Migration check for existing SQLite database
+    cur.execute("PRAGMA table_info(doctor_rooms)")
+    dr_cols = [c[1] for c in cur.fetchall()]
+    if "start_time" not in dr_cols:
+        cur.execute("ALTER TABLE doctor_rooms ADD COLUMN start_time TEXT")
+    if "end_time" not in dr_cols:
+        cur.execute("ALTER TABLE doctor_rooms ADD COLUMN end_time TEXT")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS calendar_bookings (

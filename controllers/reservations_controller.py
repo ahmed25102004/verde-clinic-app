@@ -345,16 +345,20 @@ def doctors():
             flash("تم حفظ بيانات الدكتور بنجاح", "success")
 
     cur.execute("SELECT * FROM doctors ORDER BY name")
-    doctors_list = cur.fetchall()
+    doctors_list = [dict(d) for d in cur.fetchall()]
 
     cur.execute("SELECT * FROM rooms ORDER BY name")
     rooms_list = cur.fetchall()
 
-    cur.execute("SELECT doctor_id, room_id FROM doctor_rooms")
+    cur.execute("SELECT doctor_id, room_id, start_time, end_time FROM doctor_rooms")
     dr_rows = cur.fetchall()
     doctor_rooms = {}
     for dr in dr_rows:
-        doctor_rooms.setdefault(dr["doctor_id"], []).append(dr["room_id"])
+        doctor_rooms.setdefault(dr["doctor_id"], []).append({
+            "room_id": dr["room_id"],
+            "start_time": dr["start_time"] or "09:00",
+            "end_time": dr["end_time"] or "21:00"
+        })
 
     conn.close()
     return render_template("doctors.html", doctors=doctors_list, rooms=rooms_list, doctor_rooms=doctor_rooms)
@@ -389,10 +393,13 @@ def assign_doctor_rooms(d_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM doctor_rooms WHERE doctor_id=?", (d_id,))
     for rid in room_ids:
-        cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id) VALUES (?, ?)", (d_id, int(rid)))
+        r_start = request.form.get(f"start_time_{rid}", "").strip() or "09:00"
+        r_end = request.form.get(f"end_time_{rid}", "").strip() or "21:00"
+        cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time) VALUES (?, ?, ?, ?)",
+                    (d_id, int(rid), r_start, r_end))
     conn.commit()
     conn.close()
-    flash("تم تحديث تعيين الغرف للدكتور بنجاح", "success")
+    flash("تم تحديث تعيين الغرف ومواعيدها للدكتور بنجاح", "success")
     return redirect(url_for("reservations.doctors"))
 
 # -------------------------------------------------------------

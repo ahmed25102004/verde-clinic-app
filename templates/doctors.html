@@ -3,7 +3,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h3 class="fw-bold text-white mb-1"><i class="bi bi-person-badge text-info me-2"></i>إدارة الأطباء والأخصائيين</h3>
-    <p class="text-secondary fs-6 mb-0">إضافة الدكاترة وتحديد أوقات عملهم وتعيين العيادات والغرف الخاصة بهم</p>
+    <p class="text-secondary fs-6 mb-0">إضافة وتعديل الأطباء، تحديد أيام العمل، وتعيين العيادات ومواعيد الشفتات الخاصة بها</p>
   </div>
   <button class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addDoctorModal">
     <i class="bi bi-person-plus me-1"></i> إضافة دكتور جديد
@@ -29,17 +29,33 @@
       </div>
       <div class="card-body p-3 fs-7">
         <div class="mb-2"><i class="bi bi-telephone text-info me-2"></i>الهاتف: <span class="text-white fw-medium">{{ d['phone'] or 'غير محدد' }}</span></div>
-        <div class="mb-2"><i class="bi bi-clock text-info me-2"></i>مواعيد العمل: <span class="text-info fw-semibold">{{ d['start_time'] or '09:00' }} - {{ d['end_time'] or '21:00' }}</span></div>
+        <div class="mb-2"><i class="bi bi-clock text-info me-2"></i>الفترة العامة: <span class="text-info fw-semibold">{{ d['start_time'] or '09:00' }} - {{ d['end_time'] or '21:00' }}</span></div>
         
-        <div class="mb-3">
-          <div class="text-secondary fw-semibold small mb-1"><i class="bi bi-door-closed me-1 text-info"></i>العيادات والغرف المعينة:</div>
-          {% set assigned = doctor_rooms.get(d['id'], []) %}
-          {% if assigned %}
-            {% for r in rooms %}
-              {% if r['id'] in assigned %}
-              <span class="badge bg-secondary text-white me-1 mb-1">{{ r['name'] }}</span>
-              {% endif %}
+        <div class="mb-2">
+          <i class="bi bi-calendar-week text-info me-2"></i>أيام العمل: 
+          {% if d['available_days'] %}
+          <span class="text-white fw-semibold">{{ d['available_days'].split(',') | join(' ، ') }}</span>
+          {% else %}
+          <span class="text-success fw-semibold">طوال أيام الأسبوع</span>
+          {% endif %}
+        </div>
+
+        <div class="mt-3 mb-3">
+          <div class="text-secondary fw-semibold small mb-2"><i class="bi bi-door-closed me-1 text-info"></i>الغرف ومواعيد الشفتات المعينة:</div>
+          {% set assigned_list = doctor_rooms.get(d['id'], []) %}
+          {% if assigned_list %}
+            <div class="d-flex flex-wrap gap-1">
+            {% for item in assigned_list %}
+              {% for r in rooms %}
+                {% if r['id'] == item['room_id'] %}
+                <span class="badge bg-primary bg-opacity-20 text-info border border-info p-2 rounded-3">
+                  <i class="bi bi-door-open me-1"></i>{{ r['name'] }}
+                  <span class="text-white ms-1">({{ item['start_time'] }} - {{ item['end_time'] }})</span>
+                </span>
+                {% endif %}
+              {% endfor %}
             {% endfor %}
+            </div>
           {% else %}
             <span class="text-secondary small fw-semibold">جميع الغرف والعيادات المتاحة</span>
           {% endif %}
@@ -49,17 +65,20 @@
 
         <div class="d-flex justify-content-between align-items-center pt-1">
           <form method="post" action="{{ url_for('reservations.toggle_doctor', d_id=d['id']) }}" class="d-inline">
-            <button type="submit" class="btn btn-xs btn-outline-warning">
+            <button type="submit" class="btn btn-xs btn-outline-warning" title="تغير حالة التفعيل">
               <i class="bi bi-power me-1"></i> {{ 'تعطيل' if d['active'] == 1 else 'تفعيل' }}
             </button>
           </form>
           
           <div class="d-flex gap-1">
-            <button class="btn btn-xs btn-outline-info" data-bs-toggle="modal" data-bs-target="#assignRoomsModal{{ d['id'] }}">
-              <i class="bi bi-door-open me-1"></i> تعيين الغرف
+            <button class="btn btn-xs btn-outline-light" data-bs-toggle="modal" data-bs-target="#editDoctorModal{{ d['id'] }}" title="تعديل البيانات">
+              <i class="bi bi-pencil me-1"></i> تعديل
+            </button>
+            <button class="btn btn-xs btn-outline-info" data-bs-toggle="modal" data-bs-target="#assignRoomsModal{{ d['id'] }}" title="تعيين الغرف والشفتات">
+              <i class="bi bi-door-open me-1"></i> الشفتات والغرف
             </button>
             <form method="post" action="{{ url_for('reservations.delete_doctor', d_id=d['id']) }}" class="d-inline" onsubmit="return confirm('هل أنت تأكيد حذف هذا الطبيب؟')">
-              <button type="submit" class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+              <button type="submit" class="btn btn-xs btn-outline-danger" title="حذف الطبيب"><i class="bi bi-trash"></i></button>
             </form>
           </div>
         </div>
@@ -67,30 +86,112 @@
     </div>
   </div>
 
-  <!-- Modal for Assigning Rooms -->
-  <div class="modal fade" id="assignRoomsModal{{ d['id'] }}" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+  <!-- Modal for Editing Doctor -->
+  <div class="modal fade" id="editDoctorModal{{ d['id'] }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content bg-dark text-white border-secondary">
         <div class="modal-header border-secondary">
-          <h5 class="modal-title text-info fw-bold">تعيين الغرف للطبيب: {{ d['name'] }}</h5>
+          <h5 class="modal-title text-info fw-bold"><i class="bi bi-pencil-square me-2"></i>تعديل بيانات الطبيب: {{ d['name'] }}</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{{ url_for('reservations.doctors') }}">
+          <input type="hidden" name="id" value="{{ d['id'] }}" />
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label text-secondary fw-semibold small">اسم الدكتور / الأخصائي *</label>
+                <input type="text" name="name" class="form-control bg-dark text-white border-secondary-subtle" value="{{ d['name'] }}" required />
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label text-secondary fw-semibold small">رقم الهاتف (اختياري)</label>
+                <input type="text" name="phone" class="form-control bg-dark text-white border-secondary-subtle" value="{{ d['phone'] or '' }}" placeholder="01xxxxxxxxx" />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label text-secondary fw-semibold small">أيام العمل المتاحة (اتركها فارغة لكل الأيام)</label>
+                <div class="p-3 bg-dark border border-secondary rounded-3 d-flex flex-wrap gap-3">
+                  {% set current_days = (d['available_days'] or '').split(',') %}
+                  {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
+                  <div class="form-check form-check-inline me-0">
+                    <input class="form-check-input" type="checkbox" name="available_days" value="{{ day }}" id="edit_day_{{ d['id'] }}_{{ loop.index }}" {% if day in current_days %}checked{% endif %}>
+                    <label class="form-check-label text-white small" for="edit_day_{{ d['id'] }}_{{ loop.index }}">{{ day }}</label>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label text-secondary fw-semibold small">بداية فترة العمل</label>
+                <input type="time" name="start_time" class="form-control bg-dark text-white border-secondary-subtle" value="{{ d['start_time'] or '09:00' }}" />
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label text-secondary fw-semibold small">نهاية فترة العمل</label>
+                <input type="time" name="end_time" class="form-control bg-dark text-white border-secondary-subtle" value="{{ d['end_time'] or '21:00' }}" />
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label text-secondary fw-semibold small">لون التمييز بالتقويم</label>
+                <input type="color" name="color" class="form-control form-control-color bg-dark border-secondary-subtle w-100" value="{{ d['color'] or '#0d6efd' }}" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-secondary">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="submit" class="btn btn-primary px-4 fw-bold">تحديث البيانات</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Assigning Rooms & Specific Shift Times -->
+  <div class="modal fade" id="assignRoomsModal{{ d['id'] }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content bg-dark text-white border-secondary">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title text-info fw-bold"><i class="bi bi-door-open me-2"></i>تعيين الغرف ومواعيد الشفتات للطبيب: {{ d['name'] }}</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <form method="post" action="{{ url_for('reservations.assign_doctor_rooms', d_id=d['id']) }}">
           <div class="modal-body">
-            <p class="small text-muted mb-3">اختر الغرف أو العيادات المخصصة لهذا الطبيب:</p>
-            {% set assigned = doctor_rooms.get(d['id'], []) %}
-            {% for r in rooms %}
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" name="room_ids" value="{{ r['id'] }}" id="dr_room_{{ d['id'] }}_{{ r['id'] }}" {% if r['id'] in assigned %}checked{% endif %}>
-              <label class="form-check-label text-white" for="dr_room_{{ d['id'] }}_{{ r['id'] }}">
-                {{ r['name'] }}
-              </label>
+            <p class="small text-secondary mb-3">حدد الغرف والعيادات ومواعيد الشفت الخاصة بالطبيب داخل كل غرفة:</p>
+            {% set assigned_list = doctor_rooms.get(d['id'], []) %}
+            <div class="d-flex flex-column gap-3">
+              {% for r in rooms %}
+                {% set ns = namespace(is_checked=false, start_t='09:00', end_t='21:00') %}
+                {% for item in assigned_list %}
+                  {% if item['room_id'] == r['id'] %}
+                    {% set ns.is_checked = true %}
+                    {% set ns.start_t = item['start_time'] %}
+                    {% set ns.end_t = item['end_time'] %}
+                  {% endif %}
+                {% endfor %}
+                <div class="p-3 bg-dark border border-secondary rounded-3">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="room_ids" value="{{ r['id'] }}" id="dr_room_{{ d['id'] }}_{{ r['id'] }}" {% if ns.is_checked %}checked{% endif %}>
+                    <label class="form-check-label text-white fw-bold fs-6" for="dr_room_{{ d['id'] }}_{{ r['id'] }}">
+                      <i class="bi bi-door-closed me-1 text-info"></i>{{ r['name'] }}
+                    </label>
+                  </div>
+                  <div class="row g-2 mt-1">
+                    <div class="col-6">
+                      <label class="form-label text-secondary small mb-1">بداية شفت الغرفة</label>
+                      <input type="time" name="start_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.start_t }}" />
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label text-secondary small mb-1">نهاية شفت الغرفة</label>
+                      <input type="time" name="end_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.end_t }}" />
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
             </div>
-            {% endfor %}
           </div>
           <div class="modal-footer border-secondary">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
-            <button type="submit" class="btn btn-primary px-4">حفظ التعيين</button>
+            <button type="submit" class="btn btn-primary px-4 fw-bold">حفظ الغرف والشفتات</button>
           </div>
         </form>
       </div>
@@ -99,9 +200,9 @@
   {% endfor %}
 </div>
 
-<!-- Modal for Adding Doctor -->
+<!-- Modal for Adding New Doctor -->
 <div class="modal fade" id="addDoctorModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content bg-dark text-white border-secondary">
       <div class="modal-header border-secondary">
         <h5 class="modal-title text-info fw-bold"><i class="bi bi-person-plus me-2"></i>إضافة طبيب / أخصائي جديد</h5>
@@ -109,29 +210,42 @@
       </div>
       <form method="post" action="{{ url_for('reservations.doctors') }}">
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label text-secondary fw-semibold small">اسم الدكتور / الأخصائي *</label>
-            <input type="text" name="name" class="form-control bg-dark text-white border-secondary-subtle" required placeholder="مثال: د. أحمد محمود" />
-          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-secondary fw-semibold small">اسم الدكتور / الأخصائي *</label>
+              <input type="text" name="name" class="form-control bg-dark text-white border-secondary-subtle" required placeholder="مثال: د. أحمد محمود" />
+            </div>
 
-          <div class="mb-3">
-            <label class="form-label text-secondary fw-semibold small">رقم الهاتف</label>
-            <input type="text" name="phone" class="form-control bg-dark text-white border-secondary-subtle" placeholder="رقم للتواصل" />
-          </div>
+            <div class="col-md-6">
+              <label class="form-label text-secondary fw-semibold small">رقم الهاتف (اختياري)</label>
+              <input type="text" name="phone" class="form-control bg-dark text-white border-secondary-subtle" placeholder="01xxxxxxxxx" />
+            </div>
 
-          <div class="mb-3">
-            <label class="form-label text-secondary fw-semibold small">اللون المميز بالتقويم</label>
-            <input type="color" name="color" class="form-control form-control-color bg-dark border-secondary-subtle w-100" value="#0d6efd" />
-          </div>
+            <div class="col-12">
+              <label class="form-label text-secondary fw-semibold small">أيام العمل المتاحة (اتركها فارغة لكل الأيام)</label>
+              <div class="p-3 bg-dark border border-secondary rounded-3 d-flex flex-wrap gap-3">
+                {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
+                <div class="form-check form-check-inline me-0">
+                  <input class="form-check-input" type="checkbox" name="available_days" value="{{ day }}" id="add_day_{{ loop.index }}">
+                  <label class="form-check-label text-white small" for="add_day_{{ loop.index }}">{{ day }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
 
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <label class="form-label text-secondary fw-semibold small">بداية الدوام</label>
+            <div class="col-md-4">
+              <label class="form-label text-secondary fw-semibold small">بداية فترة العمل</label>
               <input type="time" name="start_time" class="form-control bg-dark text-white border-secondary-subtle" value="09:00" />
             </div>
-            <div class="col-6">
-              <label class="form-label text-secondary fw-semibold small">نهاية الدوام</label>
+
+            <div class="col-md-4">
+              <label class="form-label text-secondary fw-semibold small">نهاية فترة العمل</label>
               <input type="time" name="end_time" class="form-control bg-dark text-white border-secondary-subtle" value="21:00" />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label text-secondary fw-semibold small">لون التمييز بالتقويم</label>
+              <input type="color" name="color" class="form-control form-control-color bg-dark border-secondary-subtle w-100" value="#0d6efd" />
             </div>
           </div>
         </div>
