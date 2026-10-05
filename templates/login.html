@@ -1,48 +1,288 @@
-{% extends 'layout.html' %}
-{% block content %}
-<div class="d-flex align-items-center justify-content-center py-5" style="min-height: 75vh;">
-  <div class="card border-0 shadow-lg p-4 p-md-5 rounded-4" style="max-width: 440px; width: 100%; background-color: var(--bg-sidebar); border: 1px solid var(--border-color);">
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تسجيل الدخول - عيادة الدكتورة بسمة رياض</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+    
+    * {
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: #f0f4f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 1.5rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Background Medical Clinic Reception Image + Gradient Overlay */
+    .bg-medical-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: linear-gradient(135deg, rgba(235, 243, 250, 0.88), rgba(215, 232, 247, 0.92)),
+                        url('https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+
+    /* Decorative Curved Blue Semi-circle Overlay Graphic (as in the screenshot) */
+    .bg-shape-left {
+      position: absolute;
+      top: -100px;
+      left: -100px;
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      border: 35px solid rgba(2, 132, 199, 0.12);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .bg-shape-right {
+      position: absolute;
+      bottom: -120px;
+      right: -120px;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      border: 45px solid rgba(2, 132, 199, 0.08);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .login-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .main-logo-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .main-logo-icon {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffffff, #e0f2fe);
+      border: 4px solid #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.75rem;
+      color: #0284c7;
+      box-shadow: 0 12px 30px rgba(2, 132, 199, 0.25);
+      margin: 0 auto;
+    }
+
+    .green-plus-badge {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 30px;
+      height: 30px;
+      background-color: #10b981;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      border: 3px solid white;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+    }
+
+    .clinic-title {
+      font-weight: 900;
+      color: #0f172a;
+      font-size: 2.25rem;
+      letter-spacing: -0.5px;
+    }
+
+    .clinic-subtitle {
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    /* Pulse Line Animation / Divider */
+    .pulse-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 1rem 0;
+    }
+    .pulse-line-left, .pulse-line-right {
+      height: 2px;
+      width: 80px;
+      background: linear-gradient(90deg, transparent, #0284c7);
+    }
+    .pulse-line-right {
+      background: linear-gradient(90deg, #0284c7, transparent);
+    }
+
+    /* Elevated Glassmorphism Card */
+    .login-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 28px;
+      padding: 2.5rem;
+      box-shadow: 0 25px 60px rgba(2, 132, 199, 0.14);
+    }
+
+    .form-label {
+      color: #334155;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .form-control {
+      background-color: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      color: #0f172a;
+      border-radius: 14px;
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      font-size: 0.95rem;
+      transition: all 0.25s ease;
+    }
+
+    .form-control:focus {
+      background-color: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15);
+      outline: none;
+    }
+
+    .input-icon-wrapper {
+      position: relative;
+    }
+
+    .input-icon-wrapper i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #0284c7;
+      font-size: 1.25rem;
+    }
+
+    .btn-medical {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: 0.85rem;
+      font-weight: 800;
+      font-size: 1.05rem;
+      box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .btn-medical:hover {
+      background: linear-gradient(135deg, #0369a1, #075985);
+      color: white;
+      box-shadow: 0 12px 28px rgba(2, 132, 199, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .demo-credentials-banner {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      color: #0369a1;
+      border-radius: 14px;
+      padding: 0.65rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-medical-overlay"></div>
+  <div class="bg-shape-left"></div>
+  <div class="bg-shape-right"></div>
+
+  <div class="login-container">
     <div class="text-center mb-4">
-      <div class="sidebar-brand-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.8rem;">
-        <i class="bi bi-sparkles"></i>
-      </div>
-      <h3 class="fw-bold text-white mb-1">تسجيل الدخول</h3>
-      <p class="text-muted small">نظام الحجوزات والحسابات لمركز التجميل</p>
-    </div>
-
-    {% if error %}
-    <div class="alert alert-danger py-2 px-3 small text-center mb-4">
-      <i class="bi bi-exclamation-circle-fill me-1"></i> {{ error }}
-    </div>
-    {% endif %}
-
-    <form method="post" action="{{ url_for('employee.login') }}">
-      <div class="mb-3">
-        <label class="form-label text-secondary fw-semibold">ID الموظف</label>
-        <div class="input-group">
-          <span class="input-group-text border-secondary bg-dark text-muted"><i class="bi bi-person"></i></span>
-          <input type="number" class="form-control" name="id" placeholder="أدخل رقم ID الخاص بك" required autocomplete="username">
+      <!-- Main Medical Heart & Cross Logo Emblem -->
+      <div class="main-logo-container mb-3">
+        <div class="main-logo-icon">
+          <i class="bi bi-heart-pulse-fill"></i>
+        </div>
+        <div class="green-plus-badge">
+          <i class="bi bi-plus-lg"></i>
         </div>
       </div>
 
-      <div class="mb-4">
-        <label class="form-label text-secondary fw-semibold">كلمة المرور</label>
-        <div class="input-group">
-          <span class="input-group-text border-secondary bg-dark text-muted"><i class="bi bi-lock"></i></span>
-          <input type="password" class="form-control" name="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password">
-        </div>
+      <!-- Main Clinic Title -->
+      <h1 class="clinic-title mb-1">عيادة الدكتورة بسمة رياض</h1>
+      <p class="clinic-subtitle mb-2">إدارة المواعيد - الحجوزات - السجلات الطبية - الفواتير والحسابات</p>
+
+      <!-- ECG Heartbeat Pulse Divider -->
+      <div class="pulse-divider">
+        <div class="pulse-line-left"></div>
+        <i class="bi bi-activity text-primary fs-4"></i>
+        <div class="pulse-line-right"></div>
+      </div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+      <div class="text-center mb-4">
+        <h3 class="fw-bold text-dark mb-1">مرحباً بك في النظام</h3>
+        <p class="text-secondary small mb-0">أدخل رقم الموظف وكلمة المرور للوصول إلى لوحة التحكم</p>
       </div>
 
-      <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold shadow-sm mb-3">
-        تسجيل الدخول <i class="bi bi-arrow-left ms-1"></i>
-      </button>
-
-      {% if allow_public_signup %}
-      <div class="text-center text-muted small mt-3">
-        ليس لديك حساب؟ <a href="{{ url_for('employee.signup') }}" class="text-primary text-decoration-none fw-bold">إنشاء حساب مدير جديد</a>
+      {% if error %}
+      <div class="alert alert-danger py-2.5 px-3 small text-center mb-4 rounded-3 d-flex align-items-center justify-content-center gap-2">
+        <i class="bi bi-exclamation-circle-fill fs-5"></i>
+        <span class="fw-semibold">{{ error }}</span>
       </div>
       {% endif %}
-    </form>
+
+      <form method="post" action="{{ url_for('employee.login') }}">
+        <div class="mb-3">
+          <label class="form-label">ID الموظف / المعرف</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-person-vcard"></i>
+            <input type="number" class="form-control" name="id" placeholder="أدخل رقم ID الخاص بك" required autocomplete="username" autofocus>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">كلمة المرور</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-lock"></i>
+            <input type="password" class="form-control" name="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-medical w-100 mb-3">
+          تسجيل الدخول <i class="bi bi-arrow-left ms-2"></i>
+        </button>
+
+        <div class="demo-credentials-banner text-center">
+          <i class="bi bi-info-circle me-1"></i> بيانات الدخول الافتراضية للمدير: <strong>ID: 1</strong> | <strong>كلمة السر: 1234567</strong>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
-{% endblock %}
+</body>
+</html>
