@@ -338,11 +338,25 @@ def doctors():
                 cur.execute("""UPDATE doctors 
                              SET name=?, phone=?, color=?, available_days=?, start_time=?, end_time=?
                              WHERE id=?""", (name, phone, color, available_days, start_time, end_time, doc_id))
+                target_id = int(doc_id)
             else:
                 cur.execute("""INSERT INTO doctors (name, phone, color, available_days, start_time, end_time, active)
                              VALUES (?, ?, ?, ?, ?, ?, 1)""", (name, phone, color, available_days, start_time, end_time))
+                target_id = cur.lastrowid
+
+            # Save room assignments and shift hours if provided in form
+            room_ids = request.form.getlist("room_ids")
+            if room_ids:
+                cur.execute("DELETE FROM doctor_rooms WHERE doctor_id=?", (target_id,))
+                for rid in room_ids:
+                    r_start = request.form.get(f"start_time_{rid}", "").strip() or "09:00"
+                    r_end = request.form.get(f"end_time_{rid}", "").strip() or "21:00"
+                    r_days = ",".join(request.form.getlist(f"days_{rid}"))
+                    cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time, days) VALUES (?, ?, ?, ?, ?)",
+                                (target_id, int(rid), r_start, r_end, r_days))
+
             conn.commit()
-            flash("تم حفظ بيانات الدكتور بنجاح", "success")
+            flash("تم حفظ بيانات الدكتور والعيادات والمواعيد بنجاح", "success")
 
     cur.execute("SELECT * FROM doctors ORDER BY name")
     doctors_list = [dict(d) for d in cur.fetchall()]
@@ -350,14 +364,15 @@ def doctors():
     cur.execute("SELECT * FROM rooms ORDER BY name")
     rooms_list = cur.fetchall()
 
-    cur.execute("SELECT doctor_id, room_id, start_time, end_time FROM doctor_rooms")
+    cur.execute("SELECT doctor_id, room_id, start_time, end_time, days FROM doctor_rooms")
     dr_rows = cur.fetchall()
     doctor_rooms = {}
     for dr in dr_rows:
         doctor_rooms.setdefault(dr["doctor_id"], []).append({
             "room_id": dr["room_id"],
             "start_time": dr["start_time"] or "09:00",
-            "end_time": dr["end_time"] or "21:00"
+            "end_time": dr["end_time"] or "21:00",
+            "days": dr["days"] or ""
         })
 
     conn.close()
@@ -395,8 +410,9 @@ def assign_doctor_rooms(d_id):
     for rid in room_ids:
         r_start = request.form.get(f"start_time_{rid}", "").strip() or "09:00"
         r_end = request.form.get(f"end_time_{rid}", "").strip() or "21:00"
-        cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time) VALUES (?, ?, ?, ?)",
-                    (d_id, int(rid), r_start, r_end))
+        r_days = ",".join(request.form.getlist(f"days_{rid}"))
+        cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time, days) VALUES (?, ?, ?, ?, ?)",
+                    (d_id, int(rid), r_start, r_end, r_days))
     conn.commit()
     conn.close()
     flash("تم تحديث تعيين الغرف ومواعيدها للدكتور بنجاح", "success")

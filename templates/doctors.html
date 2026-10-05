@@ -44,14 +44,19 @@
           <div class="text-secondary fw-semibold small mb-2"><i class="bi bi-door-closed me-1 text-info"></i>الغرف ومواعيد الشفتات المعينة:</div>
           {% set assigned_list = doctor_rooms.get(d['id'], []) %}
           {% if assigned_list %}
-            <div class="d-flex flex-wrap gap-1">
+            <div class="d-flex flex-wrap gap-2">
             {% for item in assigned_list %}
               {% for r in rooms %}
                 {% if r['id'] == item['room_id'] %}
-                <span class="badge bg-primary bg-opacity-20 text-info border border-info p-2 rounded-3">
-                  <i class="bi bi-door-open me-1"></i>{{ r['name'] }}
-                  <span class="text-white ms-1">({{ item['start_time'] }} - {{ item['end_time'] }})</span>
-                </span>
+                <div class="badge bg-primary bg-opacity-20 text-info border border-info p-2 rounded-3 text-start">
+                  <div class="fw-bold text-white"><i class="bi bi-door-open me-1 text-info"></i>{{ r['name'] }}</div>
+                  <div class="small mt-1 text-info">الوقت: <span class="text-white">{{ item['start_time'] }} - {{ item['end_time'] }}</span></div>
+                  {% if item['days'] %}
+                  <div class="small text-secondary" style="font-size: 0.75rem;">الأيام: {{ item['days'].split(',') | join('، ') }}</div>
+                  {% else %}
+                  <div class="small text-success" style="font-size: 0.75rem;">الأيام: كل أيام الدكتور</div>
+                  {% endif %}
+                </div>
                 {% endif %}
               {% endfor %}
             {% endfor %}
@@ -109,7 +114,7 @@
               </div>
 
               <div class="col-12">
-                <label class="form-label text-secondary fw-semibold small">أيام العمل المتاحة (اتركها فارغة لكل الأيام)</label>
+                <label class="form-label text-secondary fw-semibold small">أيام العمل العامة للدكتور (اتركها فارغة لكل الأيام)</label>
                 <div class="p-3 bg-dark border border-secondary rounded-3 d-flex flex-wrap gap-3">
                   {% set current_days = (d['available_days'] or '').split(',') %}
                   {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
@@ -122,12 +127,12 @@
               </div>
 
               <div class="col-md-4">
-                <label class="form-label text-secondary fw-semibold small">بداية فترة العمل</label>
+                <label class="form-label text-secondary fw-semibold small">بداية فترة العمل العامة</label>
                 <input type="time" name="start_time" class="form-control bg-dark text-white border-secondary-subtle" value="{{ d['start_time'] or '09:00' }}" />
               </div>
 
               <div class="col-md-4">
-                <label class="form-label text-secondary fw-semibold small">نهاية فترة العمل</label>
+                <label class="form-label text-secondary fw-semibold small">نهاية فترة العمل العامة</label>
                 <input type="time" name="end_time" class="form-control bg-dark text-white border-secondary-subtle" value="{{ d['end_time'] or '21:00' }}" />
               </div>
 
@@ -135,11 +140,63 @@
                 <label class="form-label text-secondary fw-semibold small">لون التمييز بالتقويم</label>
                 <input type="color" name="color" class="form-control form-control-color bg-dark border-secondary-subtle w-100" value="{{ d['color'] or '#0d6efd' }}" />
               </div>
+
+              <!-- Dynamic Room Shift Allocation in Edit -->
+              <div class="col-12 mt-3">
+                <label class="form-label text-info fw-bold mb-2">
+                  <i class="bi bi-door-open me-1"></i>تخصيص العيادات والغرف ومواعيد الشفتات:
+                </label>
+                <div class="d-flex flex-column gap-3">
+                  {% set assigned_list = doctor_rooms.get(d['id'], []) %}
+                  {% for r in rooms %}
+                    {% set ns = namespace(is_checked=false, start_t='10:00', end_t='14:00', r_days=[]) %}
+                    {% for item in assigned_list %}
+                      {% if item['room_id'] == r['id'] %}
+                        {% set ns.is_checked = true %}
+                        {% set ns.start_t = item['start_time'] %}
+                        {% set ns.end_t = item['end_time'] %}
+                        {% set ns.r_days = (item['days'] or '').split(',') %}
+                      {% endif %}
+                    {% endfor %}
+                    <div class="p-3 bg-dark border border-secondary rounded-3">
+                      <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="room_ids" value="{{ r['id'] }}" id="edit_room_check_{{ d['id'] }}_{{ r['id'] }}" {% if ns.is_checked %}checked{% endif %} onchange="toggleRoomDetails('edit_{{ d['id'] }}', {{ r['id'] }})">
+                        <label class="form-check-label text-white fw-bold fs-6" for="edit_room_check_{{ d['id'] }}_{{ r['id'] }}">
+                          <i class="bi bi-door-closed text-info me-1"></i>{{ r['name'] }}
+                        </label>
+                      </div>
+                      <div id="room_details_edit_{{ d['id'] }}_{{ r['id'] }}" class="room-details-box mt-2 ps-3 border-start border-info border-2" style="display: {{ 'block' if ns.is_checked else 'none' }};">
+                        <div class="row g-2 mb-2">
+                          <div class="col-md-6">
+                            <label class="form-label text-secondary small mb-1">بداية شفت الغرفة</label>
+                            <input type="time" name="start_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.start_t }}">
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label text-secondary small mb-1">نهاية شفت الغرفة</label>
+                            <input type="time" name="end_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.end_t }}">
+                          </div>
+                        </div>
+                        <div>
+                          <label class="form-label text-secondary small mb-1">أيام العمل في هذه الغرفة (اختياري - اتركها فارغة لكل أيام الدكتور):</label>
+                          <div class="d-flex flex-wrap gap-2">
+                            {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
+                            <div class="form-check form-check-inline me-0">
+                              <input class="form-check-input" type="checkbox" name="days_{{ r['id'] }}" value="{{ day }}" id="edit_rday_{{ d['id'] }}_{{ r['id'] }}_{{ loop.index }}" {% if day in ns.r_days %}checked{% endif %}>
+                              <label class="form-check-label text-white small" for="edit_rday_{{ d['id'] }}_{{ r['id'] }}_{{ loop.index }}">{{ day }}</label>
+                            </div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
             </div>
           </div>
           <div class="modal-footer border-secondary">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
-            <button type="submit" class="btn btn-primary px-4 fw-bold">تحديث البيانات</button>
+            <button type="submit" class="btn btn-primary px-4 fw-bold">تحديث البيانات والشفتات</button>
           </div>
         </form>
       </div>
@@ -156,33 +213,47 @@
         </div>
         <form method="post" action="{{ url_for('reservations.assign_doctor_rooms', d_id=d['id']) }}">
           <div class="modal-body">
-            <p class="small text-secondary mb-3">حدد الغرف والعيادات ومواعيد الشفت الخاصة بالطبيب داخل كل غرفة:</p>
+            <p class="small text-secondary mb-3">حدد الغرف والعيادات ومواعيد الشفت الخاصة بالطبيب داخل كل غرفة والأيام المتاحة بها:</p>
             {% set assigned_list = doctor_rooms.get(d['id'], []) %}
             <div class="d-flex flex-column gap-3">
               {% for r in rooms %}
-                {% set ns = namespace(is_checked=false, start_t='09:00', end_t='21:00') %}
+                {% set ns = namespace(is_checked=false, start_t='10:00', end_t='14:00', r_days=[]) %}
                 {% for item in assigned_list %}
                   {% if item['room_id'] == r['id'] %}
                     {% set ns.is_checked = true %}
                     {% set ns.start_t = item['start_time'] %}
                     {% set ns.end_t = item['end_time'] %}
+                    {% set ns.r_days = (item['days'] or '').split(',') %}
                   {% endif %}
                 {% endfor %}
                 <div class="p-3 bg-dark border border-secondary rounded-3">
-                  <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" name="room_ids" value="{{ r['id'] }}" id="dr_room_{{ d['id'] }}_{{ r['id'] }}" {% if ns.is_checked %}checked{% endif %}>
-                    <label class="form-check-label text-white fw-bold fs-6" for="dr_room_{{ d['id'] }}_{{ r['id'] }}">
-                      <i class="bi bi-door-closed me-1 text-info"></i>{{ r['name'] }}
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="room_ids" value="{{ r['id'] }}" id="assign_room_check_{{ d['id'] }}_{{ r['id'] }}" {% if ns.is_checked %}checked{% endif %} onchange="toggleRoomDetails('assign_{{ d['id'] }}', {{ r['id'] }})">
+                    <label class="form-check-label text-white fw-bold fs-6" for="assign_room_check_{{ d['id'] }}_{{ r['id'] }}">
+                      <i class="bi bi-door-closed text-info me-1"></i>{{ r['name'] }}
                     </label>
                   </div>
-                  <div class="row g-2 mt-1">
-                    <div class="col-6">
-                      <label class="form-label text-secondary small mb-1">بداية شفت الغرفة</label>
-                      <input type="time" name="start_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.start_t }}" />
+                  <div id="room_details_assign_{{ d['id'] }}_{{ r['id'] }}" class="room-details-box mt-2 ps-3 border-start border-info border-2" style="display: {{ 'block' if ns.is_checked else 'none' }};">
+                    <div class="row g-2 mb-2">
+                      <div class="col-6">
+                        <label class="form-label text-secondary small mb-1">بداية شفت الغرفة</label>
+                        <input type="time" name="start_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.start_t }}">
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label text-secondary small mb-1">نهاية شفت الغرفة</label>
+                        <input type="time" name="end_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.end_t }}">
+                      </div>
                     </div>
-                    <div class="col-6">
-                      <label class="form-label text-secondary small mb-1">نهاية شفت الغرفة</label>
-                      <input type="time" name="end_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="{{ ns.end_t }}" />
+                    <div>
+                      <label class="form-label text-secondary small mb-1">أيام العمل في هذه الغرفة (اختياري):</label>
+                      <div class="d-flex flex-wrap gap-2">
+                        {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
+                        <div class="form-check form-check-inline me-0">
+                          <input class="form-check-input" type="checkbox" name="days_{{ r['id'] }}" value="{{ day }}" id="assign_rday_{{ d['id'] }}_{{ r['id'] }}_{{ loop.index }}" {% if day in ns.r_days %}checked{% endif %}>
+                          <label class="form-check-label text-white small" for="assign_rday_{{ d['id'] }}_{{ r['id'] }}_{{ loop.index }}">{{ day }}</label>
+                        </div>
+                        {% endfor %}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -222,7 +293,7 @@
             </div>
 
             <div class="col-12">
-              <label class="form-label text-secondary fw-semibold small">أيام العمل المتاحة (اتركها فارغة لكل الأيام)</label>
+              <label class="form-label text-secondary fw-semibold small">أيام العمل العامة للدكتور (اتركها فارغة لكل الأيام)</label>
               <div class="p-3 bg-dark border border-secondary rounded-3 d-flex flex-wrap gap-3">
                 {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
                 <div class="form-check form-check-inline me-0">
@@ -234,12 +305,12 @@
             </div>
 
             <div class="col-md-4">
-              <label class="form-label text-secondary fw-semibold small">بداية فترة العمل</label>
+              <label class="form-label text-secondary fw-semibold small">بداية فترة العمل العامة</label>
               <input type="time" name="start_time" class="form-control bg-dark text-white border-secondary-subtle" value="09:00" />
             </div>
 
             <div class="col-md-4">
-              <label class="form-label text-secondary fw-semibold small">نهاية فترة العمل</label>
+              <label class="form-label text-secondary fw-semibold small">نهاية فترة العمل العامة</label>
               <input type="time" name="end_time" class="form-control bg-dark text-white border-secondary-subtle" value="21:00" />
             </div>
 
@@ -247,14 +318,66 @@
               <label class="form-label text-secondary fw-semibold small">لون التمييز بالتقويم</label>
               <input type="color" name="color" class="form-control form-control-color bg-dark border-secondary-subtle w-100" value="#0d6efd" />
             </div>
+
+            <!-- Dynamic Room Shift Allocation in Add Doctor -->
+            <div class="col-12 mt-3">
+              <label class="form-label text-info fw-bold mb-2">
+                <i class="bi bi-door-open me-1"></i>تخصيص العيادات والغرف ومواعيد الشفتات:
+              </label>
+              <div class="d-flex flex-column gap-3">
+                {% for r in rooms %}
+                <div class="p-3 bg-dark border border-secondary rounded-3">
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="room_ids" value="{{ r['id'] }}" id="add_room_check_{{ r['id'] }}" onchange="toggleRoomDetails('add', {{ r['id'] }})">
+                    <label class="form-check-label text-white fw-bold fs-6" for="add_room_check_{{ r['id'] }}">
+                      <i class="bi bi-door-closed text-info me-1"></i>{{ r['name'] }}
+                    </label>
+                  </div>
+                  <div id="room_details_add_{{ r['id'] }}" class="room-details-box mt-2 ps-3 border-start border-info border-2" style="display: none;">
+                    <div class="row g-2 mb-2">
+                      <div class="col-md-6">
+                        <label class="form-label text-secondary small mb-1">بداية شفت الغرفة *</label>
+                        <input type="time" name="start_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="10:00">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label text-secondary small mb-1">نهاية شفت الغرفة *</label>
+                        <input type="time" name="end_time_{{ r['id'] }}" class="form-control form-control-sm bg-dark text-white border-secondary-subtle" value="14:00">
+                      </div>
+                    </div>
+                    <div>
+                      <label class="form-label text-secondary small mb-1">أيام العمل في هذه الغرفة (اختياري - اتركها فارغة لكل أيام الدكتور):</label>
+                      <div class="d-flex flex-wrap gap-2">
+                        {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
+                        <div class="form-check form-check-inline me-0">
+                          <input class="form-check-input" type="checkbox" name="days_{{ r['id'] }}" value="{{ day }}" id="add_rday_{{ r['id'] }}_{{ loop.index }}">
+                          <label class="form-check-label text-white small" for="add_rday_{{ r['id'] }}_{{ loop.index }}">{{ day }}</label>
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer border-secondary">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
-          <button type="submit" class="btn btn-primary px-4 fw-bold">حفظ الطبيب</button>
+          <button type="submit" class="btn btn-primary px-4 fw-bold">حفظ الطبيب والعيادات</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+function toggleRoomDetails(prefix, roomId) {
+  var check = document.getElementById(prefix + '_room_check_' + roomId);
+  var details = document.getElementById('room_details_' + prefix + '_' + roomId);
+  if (check && details) {
+    details.style.display = check.checked ? 'block' : 'none';
+  }
+}
+</script>
 {% endblock %}

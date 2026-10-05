@@ -253,6 +253,8 @@ def init_db():
         cur.execute("ALTER TABLE doctor_rooms ADD COLUMN start_time TEXT")
     if "end_time" not in dr_cols:
         cur.execute("ALTER TABLE doctor_rooms ADD COLUMN end_time TEXT")
+    if "days" not in dr_cols:
+        cur.execute("ALTER TABLE doctor_rooms ADD COLUMN days TEXT")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS calendar_bookings (
