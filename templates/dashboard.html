@@ -1,17 +1,17 @@
 {% extends 'layout.html' %} 
 {% block content %}
-<div class="container-fluid py-2">
+<div class="container-fluid py-3">
   <!-- Header & Quick Actions Bar -->
   <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #131b2c, #19253d);">
     <div class="card-body p-4">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
           <span class="badge bg-primary mb-2 px-3 py-2">
-            <i class="bi bi-building me-1"></i> لوحة الإدارة والتشغيل اليومي
+            <i class="bi bi-building me-1"></i> عيادة د. بسمة رياض
           </span>
-          <h2 class="fw-bold text-white mb-1">مركز التحكم والعمليات</h2>
+          <h3 class="fw-bold text-white mb-1">لوحة التحكم السريعة</h3>
           <p class="text-secondary mb-0">
-            مرحباً بك، <strong class="text-white">{{ session.employee_name }}</strong> 👋 إليك الملخص المالي والتشغيلي لمركز التجميل اليوم.
+            مرحباً بك، <strong class="text-white">{{ session.employee_name }}</strong> 👋
           </p>
         </div>
 
@@ -33,341 +33,135 @@
     </div>
   </div>
 
-  <!-- Smart Insights & Urgent Alerts -->
-  {% if insights %}
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex align-items-center gap-2">
-          <i class="bi bi-lightbulb-fill text-warning fs-5"></i>
-          <h5 class="fw-bold mb-0 text-white">التوصيات والتنبيهات الهامة</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            {% for insight in insights %}
-            <div class="col-md-4">
-              <div class="alert alert-{{ insight.type }} border-0 shadow-sm mb-0 rounded-3 d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2">
-                  <i class="bi {{ insight.icon or 'bi-info-circle' }} fs-5"></i>
-                  <span class="small fw-semibold">{{ insight.text }}</span>
-                </div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- KPI Stat Cards -->
+  <!-- Key Financial & Operational Stats (4 Minimal Clean Cards) -->
   <div class="row g-3 mb-4">
-    <!-- Today Revenue -->
+    <!-- Laser Revenue Card -->
     <div class="col-xl-3 col-md-6">
-      <div class="stat-card h-100">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="stat-icon bg-success bg-opacity-25 text-success">
-            <i class="bi bi-cash-stack"></i>
-          </div>
-          <span class="badge bg-success">إجمالي الشهر: {{ month_revenue }} ج.م</span>
-        </div>
-        <div class="stat-label">إيرادات اليوم</div>
-        <div class="stat-value text-success">{{ today_revenue }} <small class="fs-6 text-muted">ج.م</small></div>
-      </div>
-    </div>
-
-    <!-- Today Sessions -->
-    <div class="col-xl-3 col-md-6">
-      <div class="stat-card h-100">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="stat-icon bg-primary bg-opacity-25 text-primary">
-            <i class="bi bi-calendar2-check"></i>
-          </div>
-          <span class="badge bg-primary">حجوزات نشطة: {{ active_bookings_count }}</span>
-        </div>
-        <div class="stat-label">جلسات اليوم المنفذة</div>
-        <div class="stat-value text-white">{{ today_sessions_count }} <small class="fs-6 text-muted">جلسة</small></div>
-      </div>
-    </div>
-
-    <!-- Total Customers -->
-    <div class="col-xl-3 col-md-6">
-      <div class="stat-card h-100">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="stat-icon bg-info bg-opacity-25 text-info">
-            <i class="bi bi-people-fill"></i>
-          </div>
-          {% if session.employee_role == 'manager' %}
-          <a href="{{ url_for('report.customers_list') }}" class="btn btn-sm btn-link text-decoration-none p-0 text-primary fw-bold">عرض الكل &larr;</a>
-          {% endif %}
-        </div>
-        <div class="stat-label">إجمالي عملاء المركز</div>
-        <div class="stat-value text-white">{{ total_customers_count }} <small class="fs-6 text-muted">عميل</small></div>
-      </div>
-    </div>
-
-    <!-- Uncollected Balances -->
-    <div class="col-xl-3 col-md-6">
-      <div class="stat-card h-100">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="stat-icon bg-warning bg-opacity-25 text-warning">
-            <i class="bi bi-exclamation-circle"></i>
-          </div>
-          <span class="badge bg-warning">متحصلات آتية</span>
-        </div>
-        <div class="stat-label">مبالغ متبقية غير محصلة</div>
-        <div class="stat-value text-danger">{{ total_uncollected_debt }} <small class="fs-6 text-muted">ج.م</small></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Laser vs Other Services Financial Breakdown Cards -->
-  <div class="row g-3 mb-4">
-    <!-- Laser Revenue Breakdown Card -->
-    <div class="col-md-6">
       <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-right: 4px solid #3b82f6 !important;">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="d-flex align-items-center gap-2">
             <div class="stat-icon bg-primary bg-opacity-25 text-primary">
               <i class="bi bi-brightness-high-fill"></i>
             </div>
-            <div>
-              <div class="fw-bold text-white fs-6">إيرادات حسابات الليزر (Laser)</div>
-              <div class="text-muted extra-small">باقات وجلسات الليزر فقط</div>
-            </div>
+            <span class="fw-bold text-white">إيراد الليزر اليوم</span>
           </div>
-          <span class="badge bg-primary">إيراد الشهر: {{ month_laser_revenue }} ج.م</span>
+          <span class="badge bg-primary">الشهر: {{ month_laser_revenue }} ج.م</span>
         </div>
-        <div class="d-flex justify-content-between align-items-baseline mt-3 pt-2 border-top border-secondary border-opacity-25">
-          <span class="text-secondary small">تحصيلات اليوم:</span>
-          <span class="fs-4 fw-bold text-primary">{{ today_laser_revenue }} <small class="fs-6 text-muted">ج.م</small></span>
-        </div>
+        <div class="fs-4 fw-bold text-primary mt-2">{{ today_laser_revenue }} <small class="fs-6 text-muted">ج.م</small></div>
       </div>
     </div>
 
-    <!-- Other Services Revenue Breakdown Card -->
-    <div class="col-md-6">
+    <!-- Other Services Revenue Card -->
+    <div class="col-xl-3 col-md-6">
       <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-right: 4px solid #06b6d4 !important;">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="d-flex align-items-center gap-2">
             <div class="stat-icon bg-info bg-opacity-25 text-info">
               <i class="bi bi-flower1"></i>
             </div>
-            <div>
-              <div class="fw-bold text-white fs-6">إيرادات الأقسام والخدمات الأخرى</div>
-              <div class="text-muted extra-small">بشرة / جسم / خدمات غير الليزر</div>
-            </div>
+            <span class="fw-bold text-white">إيراد الأقسام الأخرى</span>
           </div>
-          <span class="badge bg-info">إيراد الشهر: {{ month_other_revenue }} ج.م</span>
+          <span class="badge bg-info">الشهر: {{ month_other_revenue }} ج.م</span>
         </div>
-        <div class="d-flex justify-content-between align-items-baseline mt-3 pt-2 border-top border-secondary border-opacity-25">
-          <span class="text-secondary small">تحصيلات اليوم:</span>
-          <span class="fs-4 fw-bold text-info">{{ today_other_revenue }} <small class="fs-6 text-muted">ج.م</small></span>
-        </div>
+        <div class="fs-4 fw-bold text-info mt-2">{{ today_other_revenue }} <small class="fs-6 text-muted">ج.م</small></div>
       </div>
     </div>
-  </div>
 
-  <!-- Main Content Grid -->
-  <div class="row g-4">
-    <!-- Today & Upcoming Appointments Schedule -->
-    <div class="col-xl-7">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+    <!-- Today Executed Sessions -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-right: 4px solid #10b981 !important;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-clock-history text-primary fs-5"></i>
-            <h5 class="fw-bold mb-0 text-white">جدول مواعيد الجلسات القادمة والتذكيرات</h5>
+            <div class="stat-icon bg-success bg-opacity-25 text-success">
+              <i class="bi bi-calendar2-check"></i>
+            </div>
+            <span class="fw-bold text-white">جلسات اليوم</span>
           </div>
-          <span class="badge bg-secondary">{{ upcoming_appointments|length }} مواعيد</span>
+          <span class="badge bg-success">نشط: {{ active_bookings_count }}</span>
         </div>
-        <div class="card-body px-4 pt-3">
-          {% if upcoming_appointments %}
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>العميل</th>
-                  <th>الباكدج / الخدمة</th>
-                  <th>الموعد</th>
-                  <th class="text-center">تذكير واتساب</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for appt in upcoming_appointments %}
-                <tr>
-                  <td>
-                    <a href="{{ url_for('customer_detail', customer_id=appt.customer_id) }}" class="fw-bold text-decoration-none text-white">
-                      <i class="bi bi-person-circle me-1 text-primary"></i> {{ appt.customer_name }}
-                    </a>
-                    {% if appt.phone %}
-                    <div class="small text-muted">{{ appt.phone }}</div>
-                    {% endif %}
-                  </td>
-                  <td><span class="badge bg-primary">{{ appt.package_name }}</span></td>
-                  <td>
-                    {% if appt.is_today %}
-                    <span class="badge bg-danger">اليوم ({{ appt.date }})</span>
-                    {% else %}
-                    <span class="badge bg-info">غداً ({{ appt.date }})</span>
-                    {% endif %}
-                  </td>
-                  <td class="text-center">
-                    {% if appt.formatted_phone %}
-                    <a href="https://api.whatsapp.com/send?phone={{ appt.formatted_phone }}&text={{ appt.wa_msg|urlencode }}"
-                       target="_blank"
-                       class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
-                      <i class="bi bi-whatsapp me-1"></i> إرسال تذكير
-                    </a>
-                    {% else %}
-                    <span class="text-muted small">بلا رقم</span>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% else %}
-          <div class="text-center py-5 text-muted">
-            <i class="bi bi-calendar-check fs-1 opacity-50 d-block mb-2"></i>
-            لا توجد مواعيد مبرمجة لليوم أو غداً.
-          </div>
-          {% endif %}
-        </div>
+        <div class="fs-4 fw-bold text-success mt-2">{{ today_sessions_count }} <small class="fs-6 text-muted">جلسة</small></div>
       </div>
     </div>
 
-    <!-- Payments Method Breakdown & Revenue Trend -->
-    <div class="col-xl-5">
-      <!-- Today's Payment Methods Breakdown -->
-      <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3">
-          <h5 class="fw-bold mb-0 text-white">
-            <i class="bi bi-credit-card-2-front text-primary me-2"></i> تحصيلات اليوم حسب طريقة الدفع
-          </h5>
-        </div>
-        <div class="card-body px-4">
-          <div class="row g-2 text-center">
-            <div class="col-4">
-              <div class="p-3 rounded-3 border border-secondary" style="background-color: var(--bg-input);">
-                <div class="small text-muted mb-1"><i class="bi bi-cash-coin text-success me-1"></i> نقدي</div>
-                <div class="fw-bold text-white fs-5">{{ today_payment_methods.cash }} <small class="fs-6 text-muted">ج.م</small></div>
-              </div>
+    <!-- Uncollected Balances -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-right: 4px solid #f59e0b !important;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-icon bg-warning bg-opacity-25 text-warning">
+              <i class="bi bi-exclamation-circle"></i>
             </div>
-            <div class="col-4">
-              <div class="p-3 rounded-3 border border-secondary" style="background-color: var(--bg-input);">
-                <div class="small text-muted mb-1"><i class="bi bi-phone text-info me-1"></i> محفظة</div>
-                <div class="fw-bold text-white fs-5">{{ today_payment_methods.wallet }} <small class="fs-6 text-muted">ج.م</small></div>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="p-3 rounded-3 border border-secondary" style="background-color: var(--bg-input);">
-                <div class="small text-muted mb-1"><i class="bi bi-send text-primary me-1"></i> انستا باي</div>
-                <div class="fw-bold text-white fs-5">{{ today_payment_methods.instapay }} <small class="fs-6 text-muted">ج.م</small></div>
-              </div>
-            </div>
+            <span class="fw-bold text-white">متبقي غير محصل</span>
           </div>
+          <span class="badge bg-warning">آتي</span>
         </div>
-      </div>
-
-      <!-- Last 7 Days Revenue -->
-      <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3">
-          <h5 class="fw-bold mb-0 text-white">
-            <i class="bi bi-graph-up-arrow text-success me-2"></i> الإيرادات (آخر 7 أيام)
-          </h5>
-        </div>
-        <div class="card-body px-4 pt-3">
-          <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>التاريخ</th>
-                  <th class="text-end">الإيراد</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for day in last_7_days %}
-                <tr>
-                  <td class="text-muted"><i class="bi bi-calendar3 me-1"></i> {{ day.date }}</td>
-                  <td class="text-end fw-bold text-success">{{ day.amount }} ج.م</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <div class="fs-4 fw-bold text-danger mt-2">{{ total_uncollected_debt }} <small class="fs-6 text-muted">ج.م</small></div>
       </div>
     </div>
   </div>
 
-  <!-- Bottom Grid: Staff Performance & Top Packages -->
-  <div class="row g-4 mt-1">
-    <!-- Staff Performance -->
-    <div class="col-lg-6">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3">
-          <h5 class="fw-bold mb-0 text-white">
-            <i class="bi bi-person-workspace text-primary me-2"></i> أداء الموظفين والأخصائيات
-          </h5>
-        </div>
-        <div class="card-body px-4 pt-3">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>الموظف / الأخصائية</th>
-                  <th class="text-center">الجلسات</th>
-                  <th class="text-end">الدخل المحصل</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for emp in employee_stats %}
-                <tr>
-                  <td class="fw-bold text-white"><i class="bi bi-person-badge text-secondary me-2"></i> {{ emp[0] }}</td>
-                  <td class="text-center"><span class="badge bg-secondary">{{ emp[1] }}</span></td>
-                  <td class="text-end fw-bold text-success">{{ emp[2] }} ج.م</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
+  <!-- Main Focus: Today & Upcoming Appointments Schedule -->
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-primary fs-5"></i>
+        <h5 class="fw-bold mb-0 text-white">جدول مواعيد الجلسات القادمة والتذكيرات</h5>
       </div>
+      <span class="badge bg-secondary px-3 py-2 fs-6">{{ upcoming_appointments|length }} مواعيد</span>
     </div>
-
-    <!-- Top Packages -->
-    <div class="col-lg-6">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-header bg-transparent border-bottom border-secondary pt-4 px-4 pb-3">
-          <h5 class="fw-bold mb-0 text-white">
-            <i class="bi bi-star-fill text-warning me-2"></i> الباكدجات والخدمات الأكثر طلباً
-          </h5>
-        </div>
-        <div class="card-body px-4 pt-3">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>اسم الخدمة / الباكدج</th>
-                  <th class="text-center">السعر</th>
-                  <th class="text-end">عدد الحجوزات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for pkg in top_packages %}
-                <tr>
-                  <td class="fw-bold text-white">{{ pkg[0] }}</td>
-                  <td class="text-center text-muted">{{ pkg[2] }} ج.م</td>
-                  <td class="text-end"><span class="badge bg-primary rounded-pill px-3">{{ pkg[1] }} حجز</span></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
+    <div class="card-body px-4 pt-3">
+      {% if upcoming_appointments %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>العميل</th>
+              <th>الباكدج / الخدمة</th>
+              <th>الموعد</th>
+              <th class="text-center">تذكير واتساب</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for appt in upcoming_appointments %}
+            <tr>
+              <td>
+                <a href="{{ url_for('customer_detail', customer_id=appt.customer_id) }}" class="fw-bold text-decoration-none text-white">
+                  <i class="bi bi-person-circle me-1 text-primary"></i> {{ appt.customer_name }}
+                </a>
+                {% if appt.phone %}
+                <div class="small text-muted">{{ appt.phone }}</div>
+                {% endif %}
+              </td>
+              <td><span class="badge bg-primary px-2 py-1">{{ appt.package_name }}</span></td>
+              <td>
+                {% if appt.is_today %}
+                <span class="badge bg-danger">اليوم ({{ appt.date }})</span>
+                {% else %}
+                <span class="badge bg-info">غداً ({{ appt.date }})</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if appt.formatted_phone %}
+                <a href="https://api.whatsapp.com/send?phone={{ appt.formatted_phone }}&text={{ appt.wa_msg|urlencode }}"
+                   target="_blank"
+                   class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                  <i class="bi bi-whatsapp me-1"></i> إرسال تذكير
+                </a>
+                {% else %}
+                <span class="text-muted small">بلا رقم</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-calendar-check fs-1 opacity-50 d-block mb-2"></i>
+        لا توجد مواعيد مبرمجة لليوم أو غداً.
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
