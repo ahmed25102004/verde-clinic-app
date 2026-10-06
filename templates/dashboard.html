@@ -122,6 +122,53 @@
     </div>
   </div>
 
+  <!-- Laser vs Other Services Financial Breakdown Cards -->
+  <div class="row g-3 mb-4">
+    <!-- Laser Revenue Breakdown Card -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-right: 4px solid #3b82f6 !important;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-icon bg-primary bg-opacity-25 text-primary">
+              <i class="bi bi-brightness-high-fill"></i>
+            </div>
+            <div>
+              <div class="fw-bold text-white fs-6">إيرادات حسابات الليزر (Laser)</div>
+              <div class="text-muted extra-small">باقات وجلسات الليزر فقط</div>
+            </div>
+          </div>
+          <span class="badge bg-primary">إيراد الشهر: {{ month_laser_revenue }} ج.م</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-baseline mt-3 pt-2 border-top border-secondary border-opacity-25">
+          <span class="text-secondary small">تحصيلات اليوم:</span>
+          <span class="fs-4 fw-bold text-primary">{{ today_laser_revenue }} <small class="fs-6 text-muted">ج.م</small></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Other Services Revenue Breakdown Card -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-right: 4px solid #06b6d4 !important;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-icon bg-info bg-opacity-25 text-info">
+              <i class="bi bi-flower1"></i>
+            </div>
+            <div>
+              <div class="fw-bold text-white fs-6">إيرادات الأقسام والخدمات الأخرى</div>
+              <div class="text-muted extra-small">بشرة / جسم / خدمات غير الليزر</div>
+            </div>
+          </div>
+          <span class="badge bg-info">إيراد الشهر: {{ month_other_revenue }} ج.م</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-baseline mt-3 pt-2 border-top border-secondary border-opacity-25">
+          <span class="text-secondary small">تحصيلات اليوم:</span>
+          <span class="fs-4 fw-bold text-info">{{ today_other_revenue }} <small class="fs-6 text-muted">ج.م</small></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Content Grid -->
   <div class="row g-4">
     <!-- Today & Upcoming Appointments Schedule -->

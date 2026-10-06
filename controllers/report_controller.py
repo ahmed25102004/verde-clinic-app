@@ -95,6 +95,45 @@ def report_daily():
     bookings_paid_sum = cur.fetchone()[0]
     bookings_remaining = bookings_value_today - bookings_paid_sum
 
+    # Separate Laser vs Other Financial Calculation
+    cur.execute('''SELECT COALESCE(SUM(p.amount),0), COUNT(p.id) 
+                   FROM payments p 
+                   JOIN bookings b ON b.id=p.booking_id 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   AND p.date BETWEEN ? AND ?''', (start_date, end_date))
+    laser_pay_row = cur.fetchone()
+    laser_payments_total = laser_pay_row[0]
+    laser_payments_count = laser_pay_row[1]
+
+    cur.execute('''SELECT COALESCE(SUM(COALESCE(b.price_override, pkg.price)),0), COUNT(b.id) 
+                   FROM bookings b 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   AND b.start_date BETWEEN ? AND ?''', (start_date, end_date))
+    laser_bk_row = cur.fetchone()
+    laser_bookings_value = laser_bk_row[0]
+    laser_bookings_count = laser_bk_row[1]
+
+    cur.execute('''SELECT COALESCE(SUM(p.amount),0), COUNT(p.id) 
+                   FROM payments p 
+                   JOIN bookings b ON b.id=p.booking_id 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   AND p.date BETWEEN ? AND ?''', (start_date, end_date))
+    other_pay_row = cur.fetchone()
+    other_payments_total = other_pay_row[0]
+    other_payments_count = other_pay_row[1]
+
+    cur.execute('''SELECT COALESCE(SUM(COALESCE(b.price_override, pkg.price)),0), COUNT(b.id) 
+                   FROM bookings b 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   AND b.start_date BETWEEN ? AND ?''', (start_date, end_date))
+    other_bk_row = cur.fetchone()
+    other_bookings_value = other_bk_row[0]
+    other_bookings_count = other_bk_row[1]
+
     conn.close()
     
     summary = {
@@ -103,7 +142,11 @@ def report_daily():
         'net_total': net_total, 'payments_total': payments_total or 0, 'payments_by_method': payments_by_method or [],
         'payments_count': payments_count or 0, 'unique_payers': unique_payers or 0, 'bookings_value_today': bookings_value_today or 0,
         'bookings_count_today': bookings_count_today or 0, 'sessions_count_today': sessions_count_today or 0,
-        'bookings_paid_sum': bookings_paid_sum, 'bookings_remaining': bookings_remaining
+        'bookings_paid_sum': bookings_paid_sum, 'bookings_remaining': bookings_remaining,
+        'laser_payments_total': laser_payments_total, 'laser_payments_count': laser_payments_count,
+        'laser_bookings_value': laser_bookings_value, 'laser_bookings_count': laser_bookings_count,
+        'other_payments_total': other_payments_total, 'other_payments_count': other_payments_count,
+        'other_bookings_value': other_bookings_value, 'other_bookings_count': other_bookings_count
     }
     return render_template('report.html', rows=rows, summary=summary, start_date=start_date, end_date=end_date)
 
@@ -117,12 +160,42 @@ def dashboard():
     month_start = datetime.now().strftime('%Y-%m-01')
     tomorrow_str = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 
-    # KPI Metrics
+    # Overall KPI Metrics
     cur.execute('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE date = ?', (today_str,))
     today_revenue = cur.fetchone()[0]
 
     cur.execute('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE date >= ?', (month_start,))
     month_revenue = cur.fetchone()[0]
+
+    # Separate Laser Financial Metrics
+    cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
+                   JOIN bookings b ON b.id=p.booking_id 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   AND p.date = ?''', (today_str,))
+    today_laser_revenue = cur.fetchone()[0]
+
+    cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
+                   JOIN bookings b ON b.id=p.booking_id 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   AND p.date >= ?''', (month_start,))
+    month_laser_revenue = cur.fetchone()[0]
+
+    # Separate Other Services Financial Metrics
+    cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
+                   JOIN bookings b ON b.id=p.booking_id 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   AND p.date = ?''', (today_str,))
+    today_other_revenue = cur.fetchone()[0]
+
+    cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
+                   JOIN bookings b ON b.id=p.booking_id 
+                   JOIN packages pkg ON pkg.id=b.package_id 
+                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   AND p.date >= ?''', (month_start,))
+    month_other_revenue = cur.fetchone()[0]
 
     cur.execute('SELECT COUNT(*) FROM sessions WHERE date = ?', (today_str,))
     today_sessions_count = cur.fetchone()[0]
@@ -211,6 +284,10 @@ def dashboard():
     return render_template('dashboard.html',
                          today_revenue=today_revenue,
                          month_revenue=month_revenue,
+                         today_laser_revenue=today_laser_revenue,
+                         month_laser_revenue=month_laser_revenue,
+                         today_other_revenue=today_other_revenue,
+                         month_other_revenue=month_other_revenue,
                          today_sessions_count=today_sessions_count,
                          total_customers_count=total_customers_count,
                          active_bookings_count=active_bookings_count,

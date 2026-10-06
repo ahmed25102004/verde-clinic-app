@@ -98,6 +98,71 @@
   </div>
 </div>
 
+<!-- Laser vs Other Separation Section -->
+<div class="card mb-3 border-0 shadow-sm rounded-4">
+  <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-pie-chart-fill text-warning me-2"></i> الفصل المالي (حسابات باقات وجلسات الليزر vs باقي الأقسام)</span>
+    <span class="badge bg-secondary">فترة التقرير: {{ start_date }} إلى {{ end_date }}</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <!-- Laser Department Cards -->
+      <div class="col-md-6">
+        <div class="card border-primary bg-primary bg-opacity-10 h-100">
+          <div class="card-body">
+            <h5 class="card-title fw-bold text-primary mb-3">
+              <i class="bi bi-brightness-high-fill me-2"></i> قسم وجلسات الليزر (Laser)
+            </h5>
+            <div class="row g-2 text-center">
+              <div class="col-6">
+                <div class="bg-body rounded p-3 border shadow-sm">
+                  <div class="text-muted small fw-semibold">إجمالي التحصيلات</div>
+                  <div class="fs-4 fw-bold text-primary">{{ summary.laser_payments_total }} <small class="fs-6 text-muted">ج.م</small></div>
+                  <div class="text-muted small">عدد المدفوعات: {{ summary.laser_payments_count }}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="bg-body rounded p-3 border shadow-sm">
+                  <div class="text-muted small fw-semibold">إجمالي قيمة الحجوزات</div>
+                  <div class="fs-4 fw-bold text-dark">{{ summary.laser_bookings_value }} <small class="fs-6 text-muted">ج.م</small></div>
+                  <div class="text-muted small">عدد الحجوزات: {{ summary.laser_bookings_count }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other Departments Cards -->
+      <div class="col-md-6">
+        <div class="card border-info bg-info bg-opacity-10 h-100">
+          <div class="card-body">
+            <h5 class="card-title fw-bold text-info mb-3">
+              <i class="bi bi-flower1 me-2"></i> الخدمات والأقسام الأخرى (بشرة / جسم / أخرى)
+            </h5>
+            <div class="row g-2 text-center">
+              <div class="col-6">
+                <div class="bg-body rounded p-3 border shadow-sm">
+                  <div class="text-muted small fw-semibold">إجمالي التحصيلات</div>
+                  <div class="fs-4 fw-bold text-info">{{ summary.other_payments_total }} <small class="fs-6 text-muted">ج.م</small></div>
+                  <div class="text-muted small">عدد المدفوعات: {{ summary.other_payments_count }}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="bg-body rounded p-3 border shadow-sm">
+                  <div class="text-muted small fw-semibold">إجمالي قيمة الحجوزات</div>
+                  <div class="fs-4 fw-bold text-dark">{{ summary.other_bookings_value }} <small class="fs-6 text-muted">ج.م</small></div>
+                  <div class="text-muted small">عدد الحجوزات: {{ summary.other_bookings_count }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-body">
     <div class="table-responsive">
