@@ -241,15 +241,27 @@ def book():
     day = request.form.get("day", "").strip()
     start_time = request.form.get("start_time", "").strip()
 
-    if not customer_name or not session_type_id or not day or not start_time:
-        flash("جميع البيانات الأساسية مطلوبة للحجز", "danger")
+    # 1. Basic Inputs Validation
+    if not customer_name or len(customer_name) < 2:
+        flash("يرجى إدخال اسم العميل بشكل صحيح (حرفين على الأقل)", "danger")
         conn.close()
         return redirect(url_for("reservations.day_view", day_str=day or date.today().isoformat()))
+
+    if not session_type_id or not day or not start_time:
+        flash("جميع البيانات الأساسية (نوع الجلسة والتاريخ والوقت) مطلوبة للحجز", "danger")
+        conn.close()
+        return redirect(url_for("reservations.day_view", day_str=day or date.today().isoformat()))
+
+    # Phone sanitization and length check if provided
+    if phone:
+        digits_only = "".join(filter(str.isdigit, phone))
+        if len(digits_only) > 0 and len(digits_only) < 7:
+            flash("تنبيه: رقم الهاتف المحمول غير مكتمل", "warning")
 
     cur.execute("SELECT duration_minutes FROM session_types WHERE id=?", (session_type_id,))
     st_row = cur.fetchone()
     if not st_row:
-        flash("نوع الجلسة غير صحيح", "danger")
+        flash("نوع الجلسة المختار غير موجود بالنظام", "danger")
         conn.close()
         return redirect(url_for("reservations.day_view", day_str=day))
 
@@ -258,16 +270,57 @@ def book():
     e_t = add_minutes(s_t, duration)
     end_time = time_to_str(e_t)
 
-    # Check for overlapping bookings in the same room
+    # 2. Check for overlapping bookings in the same room
     if room_id:
         cur.execute("""SELECT id FROM calendar_bookings 
                      WHERE center_id=? AND day=? AND room_id=? AND status != 'canceled'
                      AND NOT(? >= end_time OR ? <= start_time)""",
                   (center_id, day, room_id, start_time, end_time))
         if cur.fetchone():
-            flash("تنبيه: توجد حجز آخر متعارض في نفس الغرفة والتوقيت!", "danger")
+            flash("عفواً: توجد جلسة أخرى حجزت هذه الغرفة بنفس التوقيت!", "danger")
             conn.close()
             return redirect(url_for("reservations.day_view", day_str=day))
+
+        # Check for downtimes / maintenance blocks in room
+        cur.execute("""SELECT id FROM downtimes 
+                     WHERE resource_type='room' AND resource_id=? AND day=?
+                     AND NOT(? >= end_time OR ? <= start_time)""",
+                  (room_id, day, start_time, end_time))
+        if cur.fetchone():
+            flash("عفواً: هذه الغرفة في فترة صيانة أو توقف محجوبة في هذا الوقت!", "danger")
+            conn.close()
+            return redirect(url_for("reservations.day_view", day_str=day))
+
+    # 3. Check for Doctor Availability & Double Booking across all rooms
+    if doctor_id:
+        # Check doctor double booking in any room on the same day
+        cur.execute("""SELECT id, room_id FROM calendar_bookings 
+                     WHERE center_id=? AND day=? AND doctor_id=? AND status != 'canceled'
+                     AND NOT(? >= end_time OR ? <= start_time)""",
+                  (center_id, day, doctor_id, start_time, end_time))
+        if cur.fetchone():
+            flash("عفواً: هذا الطبيب محجوز بالفعل في حجز آخر في هذا الوقت!", "danger")
+            conn.close()
+            return redirect(url_for("reservations.day_view", day_str=day))
+
+        # Check doctor available days of the week
+        cur.execute("SELECT name, available_days FROM doctors WHERE id=?", (doctor_id,))
+        doc_row = cur.fetchone()
+        if doc_row and doc_row["available_days"]:
+            try:
+                day_dt = datetime.strptime(day, "%Y-%m-%d").date()
+                arabic_days_map = {
+                    5: "السبت", 6: "الأحد", 0: "الاثنين", 1: "الثلاثاء",
+                    2: "الأربعاء", 3: "الخميس", 4: "الجمعة"
+                }
+                current_arabic_day = arabic_days_map.get(day_dt.weekday())
+                allowed_days = [d.strip() for d in doc_row["available_days"].split(",") if d.strip()]
+                if allowed_days and current_arabic_day not in allowed_days:
+                    flash(f"تنبيه: الطبيب ({doc_row['name']}) غير متاح للعمل يوم {current_arabic_day}!", "danger")
+                    conn.close()
+                    return redirect(url_for("reservations.day_view", day_str=day))
+            except Exception:
+                pass
 
     emp_id = session.get("employee_id")
     notes = request.form.get("notes", "")
@@ -429,10 +482,16 @@ def rooms():
 
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        if name:
-            cur.execute("INSERT INTO rooms (center_id, name) VALUES (1, ?)", (name,))
-            conn.commit()
-            flash("تم إضافة العيادة / الغرفة بنجاح", "success")
+        if not name or len(name) < 2:
+            flash("يرجى إدخال اسم العيادة/الغرفة بشكل صحيح (حرفين على الأقل)", "danger")
+        else:
+            cur.execute("SELECT 1 FROM rooms WHERE LOWER(name)=LOWER(?)", (name,))
+            if cur.fetchone():
+                flash("اسم العيادة/الغرفة مكرر وموجود بالفعل بالنظام", "warning")
+            else:
+                cur.execute("INSERT INTO rooms (center_id, name) VALUES (1, ?)", (name,))
+                conn.commit()
+                flash("تم إضافة العيادة / الغرفة بنجاح", "success")
 
     cur.execute("SELECT * FROM rooms ORDER BY id")
     rooms_list = cur.fetchall()
@@ -462,7 +521,11 @@ def session_types():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         duration = request.form.get("duration_minutes", type=int)
-        if name and duration:
+        if not name or len(name) < 2:
+            flash("يرجى إدخال اسم نوع الجلسة بشكل صحيح", "danger")
+        elif not duration or duration <= 0:
+            flash("يرجى إدخال مدة الجلسة بالدقائق برقم أكبر من 0", "danger")
+        else:
             cur.execute("INSERT INTO session_types (name, duration_minutes) VALUES (?, ?)", (name, duration))
             conn.commit()
             flash("تم إضافة نوع الجلسة بنجاح", "success")
