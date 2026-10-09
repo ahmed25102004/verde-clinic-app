@@ -95,12 +95,12 @@ def report_daily():
     bookings_paid_sum = cur.fetchone()[0]
     bookings_remaining = bookings_value_today - bookings_paid_sum
 
-    # Separate Laser vs Other Financial Calculation
+    # Separate Laser & Pulses vs Cosmetic Financial Calculation
     cur.execute('''SELECT COALESCE(SUM(p.amount),0), COUNT(p.id) 
                    FROM payments p 
                    JOIN bookings b ON b.id=p.booking_id 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   WHERE (pkg.category LIKE '%laser%' OR pkg.category LIKE '%pulse%' OR pkg.name LIKE '%ليزر%' OR pkg.name LIKE '%نبض%') 
                    AND p.date BETWEEN ? AND ?''', (start_date, end_date))
     laser_pay_row = cur.fetchone()
     laser_payments_total = laser_pay_row[0]
@@ -109,7 +109,7 @@ def report_daily():
     cur.execute('''SELECT COALESCE(SUM(COALESCE(b.price_override, pkg.price)),0), COUNT(b.id) 
                    FROM bookings b 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   WHERE (pkg.category LIKE '%laser%' OR pkg.category LIKE '%pulse%' OR pkg.name LIKE '%ليزر%' OR pkg.name LIKE '%نبض%') 
                    AND b.start_date BETWEEN ? AND ?''', (start_date, end_date))
     laser_bk_row = cur.fetchone()
     laser_bookings_value = laser_bk_row[0]
@@ -119,7 +119,7 @@ def report_daily():
                    FROM payments p 
                    JOIN bookings b ON b.id=p.booking_id 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   WHERE (pkg.category NOT LIKE '%laser%' AND pkg.category NOT LIKE '%pulse%' AND pkg.name NOT LIKE '%ليزر%' AND pkg.name NOT LIKE '%نبض%') 
                    AND p.date BETWEEN ? AND ?''', (start_date, end_date))
     other_pay_row = cur.fetchone()
     other_payments_total = other_pay_row[0]
@@ -128,7 +128,7 @@ def report_daily():
     cur.execute('''SELECT COALESCE(SUM(COALESCE(b.price_override, pkg.price)),0), COUNT(b.id) 
                    FROM bookings b 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   WHERE (pkg.category NOT LIKE '%laser%' AND pkg.category NOT LIKE '%pulse%' AND pkg.name NOT LIKE '%ليزر%' AND pkg.name NOT LIKE '%نبض%') 
                    AND b.start_date BETWEEN ? AND ?''', (start_date, end_date))
     other_bk_row = cur.fetchone()
     other_bookings_value = other_bk_row[0]
@@ -167,18 +167,18 @@ def dashboard():
     cur.execute('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE date >= ?', (month_start,))
     month_revenue = cur.fetchone()[0]
 
-    # Separate Laser Financial Metrics
+    # Separate Laser & Pulses Financial Metrics
     cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
                    JOIN bookings b ON b.id=p.booking_id 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   WHERE (pkg.category LIKE '%laser%' OR pkg.category LIKE '%pulse%' OR pkg.name LIKE '%ليزر%' OR pkg.name LIKE '%نبض%') 
                    AND p.date = ?''', (today_str,))
     today_laser_revenue = cur.fetchone()[0]
 
     cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
                    JOIN bookings b ON b.id=p.booking_id 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category='laser' OR pkg.name LIKE '%ليزر%') 
+                   WHERE (pkg.category LIKE '%laser%' OR pkg.category LIKE '%pulse%' OR pkg.name LIKE '%ليزر%' OR pkg.name LIKE '%نبض%') 
                    AND p.date >= ?''', (month_start,))
     month_laser_revenue = cur.fetchone()[0]
 
@@ -186,14 +186,14 @@ def dashboard():
     cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
                    JOIN bookings b ON b.id=p.booking_id 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   WHERE (pkg.category NOT LIKE '%laser%' AND pkg.category NOT LIKE '%pulse%' AND pkg.name NOT LIKE '%ليزر%' AND pkg.name NOT LIKE '%نبض%') 
                    AND p.date = ?''', (today_str,))
     today_other_revenue = cur.fetchone()[0]
 
     cur.execute('''SELECT COALESCE(SUM(p.amount), 0) FROM payments p 
                    JOIN bookings b ON b.id=p.booking_id 
                    JOIN packages pkg ON pkg.id=b.package_id 
-                   WHERE (pkg.category != 'laser' AND pkg.name NOT LIKE '%ليزر%') 
+                   WHERE (pkg.category NOT LIKE '%laser%' AND pkg.category NOT LIKE '%pulse%' AND pkg.name NOT LIKE '%ليزر%' AND pkg.name NOT LIKE '%نبض%') 
                    AND p.date >= ?''', (month_start,))
     month_other_revenue = cur.fetchone()[0]
 

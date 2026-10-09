@@ -4,7 +4,7 @@
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
       <h2 class="fw-bold text-white mb-1">اختيار الخدمة والباكدج</h2>
-      <p class="text-muted mb-0">تصفح باكدجات وجلسات العيادة واضغط اختيار لبدء الحجز وتسجيل البيانات</p>
+      <p class="text-muted mb-0">تصفح باكدجات وجلسات العيادة مقسمة حسب الأقسام الرئيسية واضغط اختيار لبدء الحجز</p>
     </div>
 
     <div class="d-flex gap-2">
@@ -14,151 +14,218 @@
     </div>
   </div>
 
-  <!-- Filter Nav Tabs -->
-  <ul class="nav nav-tabs mb-4 border-0 p-2 rounded-4" style="background-color: var(--bg-sidebar);" id="mainTabs" role="tablist">
+  <!-- Level 1: Parent Department Nav Pills -->
+  <ul class="nav nav-pills nav-justified mb-4 gap-3 p-2 rounded-4 shadow-sm" style="background-color: var(--bg-sidebar);" id="parentDepartmentTabs" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link active fw-bold" id="cos-sess-tab" data-bs-toggle="tab" data-bs-target="#cos-sess" type="button" role="tab">
-        <i class="bi bi-sparkles me-1 text-warning"></i> جلسات التجميل
+      <button class="nav-link active fw-bold fs-5 py-3 rounded-3" id="cosmetic-dept-tab" data-bs-toggle="pill" data-bs-target="#cosmetic-dept-pane" type="button" role="tab" aria-controls="cosmetic-dept-pane" aria-selected="true">
+        <i class="bi bi-sparkles me-2 text-warning"></i> قسم التجميل والعناية بالبشرة
       </button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link fw-bold" id="cos-pack-tab" data-bs-toggle="tab" data-bs-target="#cos-pack" type="button" role="tab">
-        <i class="bi bi-box-seam me-1 text-info"></i> باكدجات التجميل
-      </button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link fw-bold" id="laser-sess-tab" data-bs-toggle="tab" data-bs-target="#laser-sess" type="button" role="tab">
-        <i class="bi bi-lightning me-1 text-danger"></i> جلسات الليزر
-      </button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link fw-bold" id="laser-pack-tab" data-bs-toggle="tab" data-bs-target="#laser-pack" type="button" role="tab">
-        <i class="bi bi-box me-1 text-primary"></i> باكدجات الليزر
-      </button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link fw-bold" id="pulse-pack-tab" data-bs-toggle="tab" data-bs-target="#pulse-pack" type="button" role="tab">
-        <i class="bi bi-heart-pulse me-1 text-success"></i> باكدجات النبضات
+      <button class="nav-link fw-bold fs-5 py-3 rounded-3" id="laser-dept-tab" data-bs-toggle="pill" data-bs-target="#laser-dept-pane" type="button" role="tab" aria-controls="laser-dept-pane" aria-selected="false">
+        <i class="bi bi-lightning-charge me-2 text-danger"></i> قسم الليزر والنبضات
       </button>
     </li>
   </ul>
 
-  <!-- Tab Content -->
-  <div class="tab-content">
-    <!-- Cosmetic Sessions -->
-    <div class="tab-pane fade show active" id="cos-sess" role="tabpanel">
-      <div class="row g-4">
-        {% for p in cosmetic_sessions %}
-        <div class="col-md-6 col-lg-4 col-xl-3">
-          <div class="package-card h-100 p-4 d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="badge bg-primary">جلسات تجميل</span>
-              <i class="bi bi-sparkles text-warning fs-3"></i>
+  <!-- Parent Tab Content Panes -->
+  <div class="tab-content" id="parentDepartmentContent">
+
+    <!-- Parent 1: Cosmetic Department Pane -->
+    <div class="tab-pane fade show active" id="cosmetic-dept-pane" role="tabpanel" aria-labelledby="cosmetic-dept-tab">
+      <!-- Level 2 Sub-Tabs for Cosmetic -->
+      <ul class="nav nav-tabs mb-4 border-0 p-2 rounded-4" style="background-color: rgba(255,255,255,0.03);" id="cosmeticSubTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-bold" id="cos-sess-tab" data-bs-toggle="tab" data-bs-target="#cos-sess" type="button" role="tab">
+            <i class="bi bi-sparkles me-1 text-warning"></i> جلسات التجميل
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-bold" id="cos-pack-tab" data-bs-toggle="tab" data-bs-target="#cos-pack" type="button" role="tab">
+            <i class="bi bi-box-seam me-1 text-info"></i> باكدجات التجميل
+          </button>
+        </li>
+      </ul>
+
+      <!-- Sub Tab Content for Cosmetic -->
+      <div class="tab-content">
+        <!-- Cosmetic Sessions -->
+        <div class="tab-pane fade show active" id="cos-sess" role="tabpanel">
+          <div class="row g-4">
+            {% for p in cosmetic_sessions %}
+            <div class="col-md-6 col-lg-4 col-xl-3">
+              <div class="package-card h-100 p-4 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <span class="badge bg-primary">جلسات تجميل</span>
+                  <i class="bi bi-sparkles text-warning fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
+                <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
+                  <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
+                    اختيار <i class="bi bi-arrow-left ms-1"></i>
+                  </a>
+                </div>
+              </div>
             </div>
-            <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
-            <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
-              <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
-                اختيار <i class="bi bi-arrow-left ms-1"></i>
-              </a>
+            {% else %}
+            <div class="col-12">
+              <div class="alert alert-secondary text-center py-4 rounded-4 mb-0">
+                <i class="bi bi-info-circle fs-3 text-muted d-block mb-2"></i>
+                لا توجد جلسات تجميل متاحة حالياً
+              </div>
             </div>
+            {% endfor %}
           </div>
         </div>
-        {% endfor %}
+
+        <!-- Cosmetic Packages -->
+        <div class="tab-pane fade" id="cos-pack" role="tabpanel">
+          <div class="row g-4">
+            {% for p in cosmetic_packages %}
+            <div class="col-md-6 col-lg-4 col-xl-3">
+              <div class="package-card h-100 p-4 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <span class="badge bg-info">باكدج تجميل</span>
+                  <i class="bi bi-box-seam text-info fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
+                <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
+                  <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
+                    اختيار <i class="bi bi-arrow-left ms-1"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <div class="col-12">
+              <div class="alert alert-secondary text-center py-4 rounded-4 mb-0">
+                <i class="bi bi-info-circle fs-3 text-muted d-block mb-2"></i>
+                لا توجد باكدجات تجميل متاحة حالياً
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Cosmetic Packages -->
-    <div class="tab-pane fade" id="cos-pack" role="tabpanel">
-      <div class="row g-4">
-        {% for p in cosmetic_packages %}
-        <div class="col-md-6 col-lg-4 col-xl-3">
-          <div class="package-card h-100 p-4 d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="badge bg-info">باكدج تجميل</span>
-              <i class="bi bi-box-seam text-info fs-3"></i>
+    <!-- Parent 2: Laser & Pulse Department Pane -->
+    <div class="tab-pane fade" id="laser-dept-pane" role="tabpanel" aria-labelledby="laser-dept-tab">
+      <!-- Level 2 Sub-Tabs for Laser & Pulses -->
+      <ul class="nav nav-tabs mb-4 border-0 p-2 rounded-4" style="background-color: rgba(255,255,255,0.03);" id="laserSubTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-bold" id="laser-sess-tab" data-bs-toggle="tab" data-bs-target="#laser-sess" type="button" role="tab">
+            <i class="bi bi-lightning me-1 text-danger"></i> جلسات الليزر
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-bold" id="laser-pack-tab" data-bs-toggle="tab" data-bs-target="#laser-pack" type="button" role="tab">
+            <i class="bi bi-box me-1 text-primary"></i> باكدجات الليزر
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-bold" id="pulse-pack-tab" data-bs-toggle="tab" data-bs-target="#pulse-pack" type="button" role="tab">
+            <i class="bi bi-heart-pulse me-1 text-success"></i> باكدجات النبضات
+          </button>
+        </li>
+      </ul>
+
+      <!-- Sub Tab Content for Laser & Pulses -->
+      <div class="tab-content">
+        <!-- Laser Sessions -->
+        <div class="tab-pane fade show active" id="laser-sess" role="tabpanel">
+          <div class="row g-4">
+            {% for p in laser_sessions %}
+            <div class="col-md-6 col-lg-4 col-xl-3">
+              <div class="package-card h-100 p-4 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <span class="badge bg-warning">جلسة ليزر</span>
+                  <i class="bi bi-lightning text-warning fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
+                <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
+                  <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
+                    اختيار <i class="bi bi-arrow-left ms-1"></i>
+                  </a>
+                </div>
+              </div>
             </div>
-            <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
-            <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
-              <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
-                اختيار <i class="bi bi-arrow-left ms-1"></i>
-              </a>
+            {% else %}
+            <div class="col-12">
+              <div class="alert alert-secondary text-center py-4 rounded-4 mb-0">
+                <i class="bi bi-info-circle fs-3 text-muted d-block mb-2"></i>
+                لا توجد جلسات ليزر متاحة حالياً
+              </div>
             </div>
+            {% endfor %}
           </div>
         </div>
-        {% endfor %}
+
+        <!-- Laser Packages -->
+        <div class="tab-pane fade" id="laser-pack" role="tabpanel">
+          <div class="row g-4">
+            {% for p in laser_packages %}
+            <div class="col-md-6 col-lg-4 col-xl-3">
+              <div class="package-card h-100 p-4 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <span class="badge bg-primary">باكدج ليزر</span>
+                  <i class="bi bi-box text-primary fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
+                <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
+                  <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
+                    اختيار <i class="bi bi-arrow-left ms-1"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <div class="col-12">
+              <div class="alert alert-secondary text-center py-4 rounded-4 mb-0">
+                <i class="bi bi-info-circle fs-3 text-muted d-block mb-2"></i>
+                لا توجد باكدجات ليزر متاحة حالياً
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Pulse Packages -->
+        <div class="tab-pane fade" id="pulse-pack" role="tabpanel">
+          <div class="row g-4">
+            {% for p in pulse_packages %}
+            <div class="col-md-6 col-lg-4 col-xl-3">
+              <div class="package-card h-100 p-4 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <span class="badge bg-success">باكدج نبضات</span>
+                  <i class="bi bi-heart-pulse text-success fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
+                <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
+                  <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
+                    اختيار <i class="bi bi-arrow-left ms-1"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <div class="col-12">
+              <div class="alert alert-secondary text-center py-4 rounded-4 mb-0">
+                <i class="bi bi-info-circle fs-3 text-muted d-block mb-2"></i>
+                لا توجد باكدجات نبضات متاحة حالياً
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Laser Sessions -->
-    <div class="tab-pane fade" id="laser-sess" role="tabpanel">
-      <div class="row g-4">
-        {% for p in laser_sessions %}
-        <div class="col-md-6 col-lg-4 col-xl-3">
-          <div class="package-card h-100 p-4 d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="badge bg-warning">جلسة ليزر</span>
-              <i class="bi bi-lightning text-warning fs-3"></i>
-            </div>
-            <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
-            <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
-              <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
-                اختيار <i class="bi bi-arrow-left ms-1"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- Laser Packages -->
-    <div class="tab-pane fade" id="laser-pack" role="tabpanel">
-      <div class="row g-4">
-        {% for p in laser_packages %}
-        <div class="col-md-6 col-lg-4 col-xl-3">
-          <div class="package-card h-100 p-4 d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="badge bg-primary">باكدج ليزر</span>
-              <i class="bi bi-box text-primary fs-3"></i>
-            </div>
-            <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
-            <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
-              <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
-                اختيار <i class="bi bi-arrow-left ms-1"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- Pulse Packages -->
-    <div class="tab-pane fade" id="pulse-pack" role="tabpanel">
-      <div class="row g-4">
-        {% for p in pulse_packages %}
-        <div class="col-md-6 col-lg-4 col-xl-3">
-          <div class="package-card h-100 p-4 d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="badge bg-success">باكدج نبضات</span>
-              <i class="bi bi-heart-pulse text-success fs-3"></i>
-            </div>
-            <h5 class="fw-bold text-white mb-3">{{ p[1] }}</h5>
-            <div class="mt-auto pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
-              <span class="fw-bold text-success fs-5">{{ p[2] }} <small class="fs-6 text-muted">ج.م</small></span>
-              <a href="{{ url_for('register') }}?package_id={{ p[0] }}" class="btn btn-primary btn-sm px-3 shadow-sm">
-                اختيار <i class="bi bi-arrow-left ms-1"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
   </div>
 </div>
 {% endblock %}
