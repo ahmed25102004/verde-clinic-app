@@ -60,12 +60,30 @@ def report_daily():
         
         cur.execute('''SELECT COUNT(b.id), COALESCE(SUM(p.price),0) FROM bookings b JOIN packages p ON p.id=b.package_id WHERE b.employee_id=? AND b.start_date BETWEEN ? AND ?''', (eid, start_date, end_date))
         bc, bv = cur.fetchone()
+
+        # Department specific payment breakdown for this employee
+        cur.execute('''SELECT COALESCE(SUM(p.amount),0) 
+                       FROM payments p 
+                       JOIN bookings b ON b.id=p.booking_id 
+                       JOIN packages pkg ON pkg.id=b.package_id 
+                       WHERE p.employee_id=? AND (pkg.category LIKE '%laser%' OR pkg.category LIKE '%pulse%' OR pkg.name LIKE '%ليزر%' OR pkg.name LIKE '%نبض%') 
+                       AND p.date BETWEEN ? AND ?''', (eid, start_date, end_date))
+        emp_laser_pay = cur.fetchone()[0]
+
+        cur.execute('''SELECT COALESCE(SUM(p.amount),0) 
+                       FROM payments p 
+                       JOIN bookings b ON b.id=p.booking_id 
+                       JOIN packages pkg ON pkg.id=b.package_id 
+                       WHERE p.employee_id=? AND (pkg.category NOT LIKE '%laser%' AND pkg.category NOT LIKE '%pulse%' AND pkg.name NOT LIKE '%ليزر%' AND pkg.name NOT LIKE '%نبض%') 
+                       AND p.date BETWEEN ? AND ?''', (eid, start_date, end_date))
+        emp_cosmetic_pay = cur.fetchone()[0]
         
         rows.append({
             'employee': emp[1], 'employee_id': eid, 'cash': pm['cash'], 'wallet': pm['wallet'],
             'instapay': pm['instapay'], 'total_payments': pm['cash'] + pm['wallet'] + pm['instapay'],
             'expenses': emp_expenses, 'total_for_manager': total_for_manager, 'sessions_count': sessions_count,
-            'bookings_count': bc or 0, 'bookings_value': bv or 0
+            'bookings_count': bc or 0, 'bookings_value': bv or 0,
+            'laser_pay': emp_laser_pay, 'cosmetic_pay': emp_cosmetic_pay
         })
     
     grand_total = total_cash + total_wallet + total_instapay
@@ -114,6 +132,7 @@ def report_daily():
     laser_bk_row = cur.fetchone()
     laser_bookings_value = laser_bk_row[0]
     laser_bookings_count = laser_bk_row[1]
+    laser_remaining = laser_bookings_value - laser_payments_total
 
     cur.execute('''SELECT COALESCE(SUM(p.amount),0), COUNT(p.id) 
                    FROM payments p 
@@ -133,6 +152,7 @@ def report_daily():
     other_bk_row = cur.fetchone()
     other_bookings_value = other_bk_row[0]
     other_bookings_count = other_bk_row[1]
+    other_remaining = other_bookings_value - other_payments_total
 
     conn.close()
     
@@ -145,8 +165,10 @@ def report_daily():
         'bookings_paid_sum': bookings_paid_sum, 'bookings_remaining': bookings_remaining,
         'laser_payments_total': laser_payments_total, 'laser_payments_count': laser_payments_count,
         'laser_bookings_value': laser_bookings_value, 'laser_bookings_count': laser_bookings_count,
+        'laser_remaining': laser_remaining,
         'other_payments_total': other_payments_total, 'other_payments_count': other_payments_count,
-        'other_bookings_value': other_bookings_value, 'other_bookings_count': other_bookings_count
+        'other_bookings_value': other_bookings_value, 'other_bookings_count': other_bookings_count,
+        'other_remaining': other_remaining
     }
     return render_template('report.html', rows=rows, summary=summary, start_date=start_date, end_date=end_date)
 
@@ -418,18 +440,40 @@ def report_export():
     
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("""SELECT c.name, pkg.category, pkg.name, p.amount, p.date, p.method FROM payments p JOIN bookings b ON p.booking_id = b.id JOIN customers c ON b.customer_id = c.id JOIN packages pkg ON b.package_id = pkg.id WHERE p.date BETWEEN ? AND ? ORDER BY p.date ASC, p.id ASC""", (start_date, end_date))
+    cur.execute("""SELECT c.name, pkg.category, pkg.name, p.amount, p.date, p.method 
+                   FROM payments p 
+                   JOIN bookings b ON p.booking_id = b.id 
+                   JOIN customers c ON b.customer_id = c.id 
+                   JOIN packages pkg ON b.package_id = pkg.id 
+                   WHERE p.date BETWEEN ? AND ? 
+                   ORDER BY p.date ASC, p.id ASC""", (start_date, end_date))
     payments = cur.fetchall()
     
     cur.execute("""SELECT method, COALESCE(SUM(amount), 0) FROM payments WHERE date BETWEEN ? AND ? GROUP BY method""", (start_date, end_date))
     method_totals = {row[0]: row[1] for row in cur.fetchall()}
+
+    cur.execute("""SELECT COALESCE(SUM(p.amount),0) 
+                   FROM payments p 
+                   JOIN bookings b ON p.booking_id = b.id 
+                   JOIN packages pkg ON b.package_id = pkg.id 
+                   WHERE (pkg.category LIKE '%laser%' OR pkg.category LIKE '%pulse%' OR pkg.name LIKE '%ليزر%' OR pkg.name LIKE '%نبض%') 
+                   AND p.date BETWEEN ? AND ?""", (start_date, end_date))
+    laser_excel_total = cur.fetchone()[0]
+
+    cur.execute("""SELECT COALESCE(SUM(p.amount),0) 
+                   FROM payments p 
+                   JOIN bookings b ON p.booking_id = b.id 
+                   JOIN packages pkg ON b.package_id = pkg.id 
+                   WHERE (pkg.category NOT LIKE '%laser%' AND pkg.category NOT LIKE '%pulse%' AND pkg.name NOT LIKE '%ليزر%' AND pkg.name NOT LIKE '%نبض%') 
+                   AND p.date BETWEEN ? AND ?""", (start_date, end_date))
+    cosmetic_excel_total = cur.fetchone()[0]
     
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Report"
+    ws.title = "التقرير المالي بالأقسام"
     ws.sheet_view.rightToLeft = True
     
-    headers = ["اسم العميل", "الفئة (Area)", "الباكدج", "المبلغ المدفوع", "التاريخ", "طريقة الدفع"]
+    headers = ["اسم العميل", "القسم الرئيسي", "الفئة", "الباكدج / الخدمة", "المبلغ المدفوع", "التاريخ", "طريقة الدفع"]
     ws.append(headers)
     
     for cell in ws[1]:
@@ -437,17 +481,26 @@ def report_export():
         cell.alignment = Alignment(horizontal="center")
     
     for p in payments:
+        cat = (p[1] or '').lower()
+        pkg_name = (p[2] or '').lower()
+        if 'laser' in cat or 'pulse' in cat or 'ليزر' in pkg_name or 'نبض' in pkg_name:
+            dept = "قسم الليزر والنبضات"
+        else:
+            dept = "قسم التجميل والعناية بالبشرة"
+            
         method_ar = "نقدي" if p[5] == 'cash' else "محفظة" if p[5] == 'wallet' else "انستا باي" if p[5] == 'instapay' else p[5]
-        ws.append([p[0], p[1], p[2], p[3], p[4], method_ar])
+        ws.append([p[0], dept, p[1], p[2], p[3], p[4], method_ar])
     
     ws.append([])
+    ws.append(["إجمالي تحصيلات قسم الليزر والنبضات", laser_excel_total, "جنيه"])
+    ws.append(["إجمالي تحصيلات قسم التجميل والعناية بالبشرة", cosmetic_excel_total, "جنيه"])
     ws.append(["إجمالي النقدي", method_totals.get('cash', 0), "جنيه"])
     ws.append(["إجمالي المحفظة", method_totals.get('wallet', 0), "جنيه"])
     ws.append(["إجمالي انستا باي", method_totals.get('instapay', 0), "جنيه"])
-    ws.append(["الإجمالي الكلي", sum(method_totals.values()), "جنيه"])
+    ws.append(["الإجمالي الكلي لجميع الأقسام", sum(method_totals.values()), "جنيه"])
     
     last_row = ws.max_row
-    for i in range(last_row - 3, last_row + 1):
+    for i in range(last_row - 5, last_row + 1):
         ws.cell(row=i, column=1).font = Font(bold=True)
         ws.cell(row=i, column=2).font = Font(bold=True)
     

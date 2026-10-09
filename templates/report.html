@@ -1,159 +1,168 @@
-{% extends 'layout.html' %} {% block content %}
-<div class="card mb-3">
-  <div class="card-header">تقرير مخصص حسب الفترة</div>
-  <div class="card-body">
-    <form class="row g-2" method="get" action="/report">
-      <div class="col-auto">
-        <label class="form-label">من تاريخ</label>
-        <input
-          type="date"
-          class="form-control"
-          name="start_date"
-          value="{{ start_date }}"
-        />
-      </div>
-      <div class="col-auto">
-        <label class="form-label">إلى تاريخ</label>
-        <input
-          type="date"
-          class="form-control"
-          name="end_date"
-          value="{{ end_date }}"
-        />
-      </div>
-      <div class="col-auto d-flex align-items-end">
-        <button class="btn btn-primary" type="submit">عرض التقرير</button>
-      </div>
-      <div class="col-auto d-flex align-items-end">
-        <a
-          class="btn btn-success"
-          href="/report_export?start_date={{ start_date }}&end_date={{ end_date }}"
-          >تصدير إكسل</a
-        >
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card mb-3">
-  <div class="card-header">
-    ملخص الفترة ({{ start_date }} إلى {{ end_date }})
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-3">
-        <div class="border rounded p-3">
-          <div class="fw-bold">إجمالي المدفوع اليوم</div>
-          <div class="fs-5">{{ summary.payments_total }}</div>
-          <div class="text-muted">
-            عدد العمليات: {{ summary.payments_count }}
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="border rounded p-3">
-          <div class="fw-bold">تسجيلات اليوم</div>
-          <div>القيمة: {{ summary.bookings_value_today }}</div>
-          <div>المدفوع عليها: {{ summary.bookings_paid_sum }}</div>
-          <div class="fs-6">الباقي: {{ summary.bookings_remaining }}</div>
-          <div class="text-muted">
-            عدد التسجيلات: {{ summary.bookings_count_today }}
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="border rounded p-3">
-          <div class="fw-bold">طرق الدفع اليوم</div>
-          {% for m in summary.payments_by_method %}
-          <div>
-            {% if m[0]=='cash' %}نقدي{% elif m[0]=='wallet' %}محفظة{% elif
-            m[0]=='instapay' %}انستا باي{% else %}{{ m[0] }}{% endif %}: {{ m[1]
-            }}
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="border rounded p-3">
-          <div class="fw-bold">إضافات</div>
-          <div>عملاء دفعوا اليوم: {{ summary.unique_payers }}</div>
-          <div>جلسات منفذة اليوم: {{ summary.sessions_count_today }}</div>
-        </div>
-      </div>
+{% extends 'layout.html' %} 
+{% block content %}
+<div class="container-fluid py-2">
+  
+  <!-- Date Filter Card -->
+  <div class="card mb-4 border-0 shadow-sm rounded-4">
+    <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center py-3">
+      <span><i class="bi bi-calendar-range me-2 text-warning"></i> التقرير المالي المخصص</span>
+      <span class="badge bg-secondary fs-6">فترة التقرير: {{ start_date }} إلى {{ end_date }}</span>
     </div>
-    <div class="row g-3 mt-2">
-      <div class="col-md-4">
-        <div class="border rounded p-3">
-          <div class="fw-bold">تسجيلات لها مدفوعات اليوم</div>
-          <div>القيمة: {{ summary.bookings_value_touched_today }}</div>
-          <div class="fs-6">
-            الباقي (إجمالي): {{ summary.bookings_remaining_touched_today }}
-          </div>
-          <div class="text-muted">
-            عدد التسجيلات: {{ summary.bookings_count_touched_today }}
-          </div>
+    <div class="card-body p-4">
+      <form class="row g-3 align-items-end" method="get" action="/report">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">من تاريخ</label>
+          <input type="date" class="form-control form-control-lg" name="start_date" value="{{ start_date }}" />
         </div>
-      </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">إلى تاريخ</label>
+          <input type="date" class="form-control form-control-lg" name="end_date" value="{{ end_date }}" />
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+          <button class="btn btn-primary btn-lg flex-fill shadow-sm fw-bold" type="submit">
+            <i class="bi bi-filter me-1"></i> عرض التقرير
+          </button>
+          <a class="btn btn-success btn-lg flex-fill shadow-sm fw-bold" href="/report_export?start_date={{ start_date }}&end_date={{ end_date }}">
+            <i class="bi bi-file-earmark-excel me-1"></i> تصدير إكسل
+          </a>
+        </div>
+      </form>
     </div>
   </div>
-</div>
 
-<!-- Laser vs Other Separation Section -->
-<div class="card mb-3 border-0 shadow-sm rounded-4">
-  <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-pie-chart-fill text-warning me-2"></i> الفصل المالي (حسابات باقات وجلسات الليزر vs باقي الأقسام)</span>
-    <span class="badge bg-secondary">فترة التقرير: {{ start_date }} إلى {{ end_date }}</span>
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <!-- Laser Department Cards -->
-      <div class="col-md-6">
-        <div class="card border-primary bg-primary bg-opacity-10 h-100">
-          <div class="card-body">
-            <h5 class="card-title fw-bold text-primary mb-3">
-              <i class="bi bi-brightness-high-fill me-2"></i> قسم وجلسات الليزر (Laser)
-            </h5>
-            <div class="row g-2 text-center">
-              <div class="col-6">
-                <div class="bg-body rounded p-3 border shadow-sm">
-                  <div class="text-muted small fw-semibold">إجمالي التحصيلات</div>
-                  <div class="fs-4 fw-bold text-primary">{{ summary.laser_payments_total }} <small class="fs-6 text-muted">ج.م</small></div>
-                  <div class="text-muted small">عدد المدفوعات: {{ summary.laser_payments_count }}</div>
-                </div>
+  <!-- Department Separation Header & Cards (Fitted 100% Separated) -->
+  <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-primary text-white fw-bold py-3 fs-5">
+      <i class="bi bi-building-fill-gear me-2"></i> الفصل المالي التام للأقسام (قسم التجميل والعناية بالبشرة vs قسم الليزر والنبضات)
+    </div>
+    <div class="card-body p-4" style="background-color: var(--bg-sidebar, #1e293b);">
+      <div class="row g-4">
+        
+        <!-- Department 1: Cosmetic & Skin Care -->
+        <div class="col-lg-6">
+          <div class="card border-0 rounded-4 shadow-sm h-100" style="background: linear-gradient(135deg, rgba(255,193,7,0.12) 0%, rgba(13,110,253,0.08) 100%); border-right: 5px solid #ffc107 !important;">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold text-warning mb-0">
+                  <i class="bi bi-sparkles me-2"></i> قسم التجميل والعناية بالبشرة
+                </h4>
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6 fw-bold">جلسات + باكدجات تجميل</span>
               </div>
-              <div class="col-6">
-                <div class="bg-body rounded p-3 border shadow-sm">
-                  <div class="text-muted small fw-semibold">إجمالي قيمة الحجوزات</div>
-                  <div class="fs-4 fw-bold text-dark">{{ summary.laser_bookings_value }} <small class="fs-6 text-muted">ج.م</small></div>
-                  <div class="text-muted small">عدد الحجوزات: {{ summary.laser_bookings_count }}</div>
+              <p class="text-muted small mb-4">تشمل حسابات كل جلسات التجميل، العناية بالبشرة، وباكدجات التجميل بشكل مستقل.</p>
+
+              <div class="row g-3 text-center">
+                <div class="col-6 col-sm-4">
+                  <div class="bg-body rounded-4 p-3 border shadow-sm h-100">
+                    <div class="text-muted small fw-semibold">إجمالي التحصيلات</div>
+                    <div class="fs-4 fw-bold text-warning mt-1">{{ summary.other_payments_total }} <small class="fs-6 text-muted">ج.م</small></div>
+                    <div class="text-muted extra-small mt-1">عمليات دفع: {{ summary.other_payments_count }}</div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4">
+                  <div class="bg-body rounded-4 p-3 border shadow-sm h-100">
+                    <div class="text-muted small fw-semibold">قيمة الحجوزات</div>
+                    <div class="fs-4 fw-bold text-light mt-1">{{ summary.other_bookings_value }} <small class="fs-6 text-muted">ج.م</small></div>
+                    <div class="text-muted extra-small mt-1">حجوزات جديدة: {{ summary.other_bookings_count }}</div>
+                  </div>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <div class="bg-body rounded-4 p-3 border shadow-sm h-100">
+                    <div class="text-muted small fw-semibold">المتبقي الآجل</div>
+                    <div class="fs-4 fw-bold text-info mt-1">{{ summary.other_remaining }} <small class="fs-6 text-muted">ج.م</small></div>
+                    <div class="text-muted extra-small mt-1">متبقي غير محصل</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Other Departments Cards -->
-      <div class="col-md-6">
-        <div class="card border-info bg-info bg-opacity-10 h-100">
-          <div class="card-body">
-            <h5 class="card-title fw-bold text-info mb-3">
-              <i class="bi bi-flower1 me-2"></i> الخدمات والأقسام الأخرى (بشرة / جسم / أخرى)
-            </h5>
-            <div class="row g-2 text-center">
-              <div class="col-6">
-                <div class="bg-body rounded p-3 border shadow-sm">
-                  <div class="text-muted small fw-semibold">إجمالي التحصيلات</div>
-                  <div class="fs-4 fw-bold text-info">{{ summary.other_payments_total }} <small class="fs-6 text-muted">ج.م</small></div>
-                  <div class="text-muted small">عدد المدفوعات: {{ summary.other_payments_count }}</div>
+        <!-- Department 2: Laser & Pulses -->
+        <div class="col-lg-6">
+          <div class="card border-0 rounded-4 shadow-sm h-100" style="background: linear-gradient(135deg, rgba(220,53,69,0.12) 0%, rgba(13,202,240,0.08) 100%); border-right: 5px solid #dc3545 !important;">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold text-danger mb-0">
+                  <i class="bi bi-lightning-charge-fill me-2"></i> قسم الليزر والنبضات
+                </h4>
+                <span class="badge bg-danger px-3 py-2 rounded-pill fs-6 fw-bold">ليزر + نبضات</span>
+              </div>
+              <p class="text-muted small mb-4">تشمل حسابات جلسات الليزر، باكدجات الليزر، وباكدجات النبضات مستقلة 100%.</p>
+
+              <div class="row g-3 text-center">
+                <div class="col-6 col-sm-4">
+                  <div class="bg-body rounded-4 p-3 border shadow-sm h-100">
+                    <div class="text-muted small fw-semibold">إجمالي التحصيلات</div>
+                    <div class="fs-4 fw-bold text-danger mt-1">{{ summary.laser_payments_total }} <small class="fs-6 text-muted">ج.م</small></div>
+                    <div class="text-muted extra-small mt-1">عمليات دفع: {{ summary.laser_payments_count }}</div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4">
+                  <div class="bg-body rounded-4 p-3 border shadow-sm h-100">
+                    <div class="text-muted small fw-semibold">قيمة الحجوزات</div>
+                    <div class="fs-4 fw-bold text-light mt-1">{{ summary.laser_bookings_value }} <small class="fs-6 text-muted">ج.م</small></div>
+                    <div class="text-muted extra-small mt-1">حجوزات جديدة: {{ summary.laser_bookings_count }}</div>
+                  </div>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <div class="bg-body rounded-4 p-3 border shadow-sm h-100">
+                    <div class="text-muted small fw-semibold">المتبقي الآجل</div>
+                    <div class="fs-4 fw-bold text-info mt-1">{{ summary.laser_remaining }} <small class="fs-6 text-muted">ج.م</small></div>
+                    <div class="text-muted extra-small mt-1">متبقي غير محصل</div>
+                  </div>
                 </div>
               </div>
-              <div class="col-6">
-                <div class="bg-body rounded p-3 border shadow-sm">
-                  <div class="text-muted small fw-semibold">إجمالي قيمة الحجوزات</div>
-                  <div class="fs-4 fw-bold text-dark">{{ summary.other_bookings_value }} <small class="fs-6 text-muted">ج.م</small></div>
-                  <div class="text-muted small">عدد الحجوزات: {{ summary.other_bookings_count }}</div>
-                </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Overall Financial Summary -->
+  <div class="card mb-4 border-0 shadow-sm rounded-4">
+    <div class="card-header bg-secondary text-white fw-bold py-3">
+      <i class="bi bi-wallet2 me-2"></i> الإجمالي المالي وطرق الدفع العامة للفترة
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-3 text-center">
+        <div class="col-md-3">
+          <div class="border rounded-4 p-3 bg-body h-100">
+            <div class="fw-bold text-muted">إجمالي التحصيلات بالفترة</div>
+            <div class="fs-3 fw-bold text-success mt-1">{{ summary.payments_total }} <small class="fs-6 text-muted">ج.م</small></div>
+            <div class="text-muted small">عدد المدفوعات: {{ summary.payments_count }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="border rounded-4 p-3 bg-body h-100">
+            <div class="fw-bold text-muted">إجمالي قيمة الحجوزات الجديدة</div>
+            <div class="fs-4 fw-bold text-white mt-1">{{ summary.bookings_value_today }} <small class="fs-6 text-muted">ج.م</small></div>
+            <div class="text-muted small mt-1">المدفوع: {{ summary.bookings_paid_sum }} | الباقي: {{ summary.bookings_remaining }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="border rounded-4 p-3 bg-body h-100">
+            <div class="fw-bold text-muted mb-1">تفاصيل طرق الدفع</div>
+            {% for m in summary.payments_by_method %}
+            <div class="d-flex justify-content-between px-2 py-1 border-bottom border-secondary border-opacity-25 small">
+              <span class="text-muted">{% if m[0]=='cash' %}نقدي{% elif m[0]=='wallet' %}محفظة{% elif m[0]=='instapay' %}انستا باي{% else %}{{ m[0] }}{% endif %}</span>
+              <span class="fw-bold text-success">{{ m[1] }} ج.م</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="border rounded-4 p-3 bg-body h-100">
+            <div class="fw-bold text-muted">إحصائيات إضافية</div>
+            <div class="text-start mt-2">
+              <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25 small">
+                <span>عملاء دفعوا بالفترة:</span>
+                <span class="fw-bold text-warning">{{ summary.unique_payers }}</span>
+              </div>
+              <div class="d-flex justify-content-between py-1 small">
+                <span>جلسات منفذة:</span>
+                <span class="fw-bold text-info">{{ summary.sessions_count_today }}</span>
               </div>
             </div>
           </div>
@@ -161,44 +170,47 @@
       </div>
     </div>
   </div>
-</div>
 
-<div class="card">
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>الموظف</th>
-            <th>عدد التسجيلات</th>
-            <th>قيمة التسجيلات</th>
-            <th>المصاريف</th>
-            <th>نقدي</th>
-            <th>محفظة</th>
-            <th>انستا باي</th>
-            <th>الإجمالي قبل الخصم</th>
-            <th>الإجمالي بعد الخصم</th>
-            <th>عدد الجلسات المنفذة</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in rows %}
-          <tr>
-            <td>{{ r.employee }}</td>
-            <td>{{ r.bookings_count }}</td>
-            <td>{{ r.bookings_value }}</td>
-            <td>{{ r.expenses }}</td>
-            <td>{{ r.cash }}</td>
-            <td>{{ r.wallet }}</td>
-            <td>{{ r.instapay }}</td>
-            <td>{{ r.total_payments }}</td>
-            <td>{{ r.total_for_manager }}</td>
-            <td>{{ r.sessions_count }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- Detailed Employee Breakdown Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="card-header bg-dark text-white fw-bold py-3 fs-5">
+      <i class="bi bi-people-fill me-2"></i> تفاصيل حسابات الموظفات مقسمة بالأقسام المالية
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 text-center">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th class="py-3 fs-6">الموظفة</th>
+              <th class="py-3 fs-6 text-warning"><i class="bi bi-sparkles me-1"></i> تحصيلات التجميل</th>
+              <th class="py-3 fs-6 text-danger"><i class="bi bi-lightning me-1"></i> تحصيلات الليزر والنبضات</th>
+              <th class="py-3 fs-6">إجمالي التحصيلات</th>
+              <th class="py-3 fs-6">المصاريف</th>
+              <th class="py-3 fs-6 text-success">صافي الموظفة للمديرة</th>
+              <th class="py-3 fs-6">الجلسات المنفذة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td class="fw-bold text-start ps-4">{{ r.employee }}</td>
+              <td class="fw-bold text-warning fs-5">{{ r.cosmetic_pay }} <small class="fs-6 text-muted">ج.م</small></td>
+              <td class="fw-bold text-danger fs-5">{{ r.laser_pay }} <small class="fs-6 text-muted">ج.م</small></td>
+              <td class="fw-bold text-white fs-5">{{ r.total_payments }} <small class="fs-6 text-muted">ج.م</small></td>
+              <td class="text-danger fs-6">{{ r.expenses }} <small class="text-muted">ج.م</small></td>
+              <td class="fw-bold text-success fs-4">{{ r.total_for_manager }} <small class="fs-6 text-muted">ج.م</small></td>
+              <td><span class="badge bg-info px-3 py-2 fs-6">{{ r.sessions_count }}</span></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="py-4 text-muted">لا توجد بيانات متاحة لفترة التقرير المحددة</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
 </div>
 {% endblock %}
