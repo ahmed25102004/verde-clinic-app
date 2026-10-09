@@ -503,14 +503,13 @@ def doctors():
 
             # Save room assignments and shift hours if provided in form
             room_ids = request.form.getlist("room_ids")
+            cur.execute("DELETE FROM doctor_rooms WHERE doctor_id=?", (target_id,))
             if room_ids:
-                cur.execute("DELETE FROM doctor_rooms WHERE doctor_id=?", (target_id,))
                 for rid in room_ids:
                     r_start = request.form.get(f"start_time_{rid}", "").strip() or "09:00"
                     r_end = request.form.get(f"end_time_{rid}", "").strip() or "21:00"
-                    r_days = ",".join(request.form.getlist(f"days_{rid}"))
-                    cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time, days) VALUES (?, ?, ?, ?, ?)",
-                                (target_id, int(rid), r_start, r_end, r_days))
+                    cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time, days) VALUES (?, ?, ?, ?, '')",
+                                (target_id, int(rid), r_start, r_end))
 
             conn.commit()
             flash("تم حفظ بيانات الدكتور والعيادات والمواعيد بنجاح", "success")
@@ -551,6 +550,7 @@ def toggle_doctor(d_id):
 def delete_doctor(d_id):
     conn = get_conn()
     cur = conn.cursor()
+    cur.execute("DELETE FROM doctor_rooms WHERE doctor_id=?", (d_id,))
     cur.execute("DELETE FROM doctors WHERE id=?", (d_id,))
     conn.commit()
     conn.close()
@@ -564,12 +564,12 @@ def assign_doctor_rooms(d_id):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("DELETE FROM doctor_rooms WHERE doctor_id=?", (d_id,))
-    for rid in room_ids:
-        r_start = request.form.get(f"start_time_{rid}", "").strip() or "09:00"
-        r_end = request.form.get(f"end_time_{rid}", "").strip() or "21:00"
-        r_days = ",".join(request.form.getlist(f"days_{rid}"))
-        cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time, days) VALUES (?, ?, ?, ?, ?)",
-                    (d_id, int(rid), r_start, r_end, r_days))
+    if room_ids:
+        for rid in room_ids:
+            r_start = request.form.get(f"start_time_{rid}", "").strip() or "09:00"
+            r_end = request.form.get(f"end_time_{rid}", "").strip() or "21:00"
+            cur.execute("INSERT INTO doctor_rooms (doctor_id, room_id, start_time, end_time, days) VALUES (?, ?, ?, ?, '')",
+                        (d_id, int(rid), r_start, r_end))
     conn.commit()
     conn.close()
     flash("تم تحديث تعيين الغرف ومواعيدها للدكتور بنجاح", "success")
