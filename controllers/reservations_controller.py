@@ -8,6 +8,27 @@ from auth import login_required, manager_required
 
 reservations_bp = Blueprint("reservations", __name__)
 
+def normalize_arabic(text):
+    if not text:
+        return ""
+    text = text.strip()
+    return text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+
+def is_doctor_available_on_date(doctor, day_dt):
+    if not doctor:
+        return True
+    avail_days_str = doctor.get("available_days") if isinstance(doctor, dict) else (doctor["available_days"] if doctor else "")
+    if not avail_days_str or not str(avail_days_str).strip():
+        return True
+    
+    arabic_days_map = {
+        5: "السبت", 6: "الأحد", 0: "الإثنين", 1: "الثلاثاء",
+        2: "الأربعاء", 3: "الخميس", 4: "الجمعة"
+    }
+    current_day_name = arabic_days_map.get(day_dt.weekday(), "")
+    allowed = [normalize_arabic(d) for d in str(avail_days_str).split(",") if d.strip()]
+    return normalize_arabic(current_day_name) in allowed
+
 def parse_time_str(s):
     if not s:
         return time(9, 0)
@@ -66,7 +87,7 @@ def center_working_hours(conn, center_id, resource_type=None, resource_id=None):
         return parse_time_str(r["start_time"]), parse_time_str(r["end_time"])
     return default_working_hours()
 
-def available_slots(conn, resource_type, resource_id, day_str, duration_minutes):
+def available_slots(conn, resource_type, resource_id, day_str, duration_minutes, doctor_id=None):
     cur = conn.cursor()
     if resource_type == "room":
         cur.execute("SELECT center_id FROM rooms WHERE id=?", (resource_id,))
@@ -74,10 +95,31 @@ def available_slots(conn, resource_type, resource_id, day_str, duration_minutes)
         return []
     r = cur.fetchone()
     if not r: return []
-    start, end = center_working_hours(conn, r["center_id"], resource_type, resource_id)
+
+    start, end = None, None
+    if doctor_id:
+        cur.execute("SELECT start_time, end_time FROM doctor_rooms WHERE doctor_id=? AND room_id=?", (doctor_id, resource_id))
+        dr = cur.fetchone()
+        if dr and dr["start_time"] and dr["end_time"]:
+            start, end = parse_time_str(dr["start_time"]), parse_time_str(dr["end_time"])
+        else:
+            cur.execute("SELECT start_time, end_time FROM doctors WHERE id=?", (doctor_id,))
+            doc = cur.fetchone()
+            if doc and doc["start_time"] and doc["end_time"]:
+                start, end = parse_time_str(doc["start_time"]), parse_time_str(doc["end_time"])
+
+    if not start or not end:
+        start, end = center_working_hours(conn, r["center_id"], resource_type, resource_id)
+
     slots = []
     bookings = resource_bookings(conn, resource_type, resource_id, day_str)
     downs = resource_downtimes(conn, resource_type, resource_id, day_str)
+
+    doctor_bookings = []
+    if doctor_id:
+        cur.execute("SELECT start_time, end_time FROM calendar_bookings WHERE day=? AND doctor_id=? AND status != 'canceled'", (day_str, doctor_id))
+        doctor_bookings = [(parse_time_str(row["start_time"]), parse_time_str(row["end_time"])) for row in cur.fetchall()]
+
     t = start
     step = 15
     is_today = (day_str == date.today().isoformat())
@@ -93,6 +135,11 @@ def available_slots(conn, resource_type, resource_id, day_str, duration_minutes)
             if overlaps(t, candidate_end, b_start, b_end):
                 conflict = True
                 break
+        if not conflict and doctor_bookings:
+            for db_start, db_end in doctor_bookings:
+                if overlaps(t, candidate_end, db_start, db_end):
+                    conflict = True
+                    break
         if not conflict:
             for d_start, d_end in downs:
                 if overlaps(t, candidate_end, d_start, d_end):
@@ -135,6 +182,22 @@ def calendar():
     month = int(request.args.get("month", now.month))
     days = month_days(year, month)
     
+    arabic_days_map = {
+        5: "السبت", 6: "الأحد", 0: "الإثنين", 1: "الثلاثاء",
+        2: "الأربعاء", 3: "الخميس", 4: "الجمعة"
+    }
+    days_data = []
+    for d in days:
+        d_day_name = arabic_days_map.get(d.weekday(), "")
+        is_avail = True
+        if doctor:
+            is_avail = is_doctor_available_on_date(doctor, d)
+        days_data.append({
+            'date': d,
+            'day_name': d_day_name,
+            'is_available': is_avail
+        })
+    
     doctors_json = json.dumps({
         d['id']: {
             'available_days': d.get('available_days', ''),
@@ -149,6 +212,7 @@ def calendar():
                            doctors_list=doctors_list,
                            doctors_json=doctors_json,
                            days=days,
+                           days_data=days_data,
                            year=year,
                            month=month,
                            today=date.today(),
@@ -178,15 +242,52 @@ def day_view(day_str):
     day_dt = datetime.strptime(day_str, "%Y-%m-%d").date()
     is_past = day_dt < date.today()
 
+    arabic_days_map = {
+        5: "السبت", 6: "الأحد", 0: "الإثنين", 1: "الثلاثاء",
+        2: "الأربعاء", 3: "الخميس", 4: "الجمعة"
+    }
+    arabic_day_name = arabic_days_map.get(day_dt.weekday(), "")
+
+    doctor = None
+    is_doctor_unavailable_today = False
+    if doctor_id:
+        cur.execute("SELECT * FROM doctors WHERE id=?", (doctor_id,))
+        doc_row = cur.fetchone()
+        if doc_row:
+            doctor = dict(doc_row)
+            if not is_doctor_available_on_date(doctor, day_dt):
+                is_doctor_unavailable_today = True
+
     if session_type_id and not is_past:
         cur.execute("SELECT duration_minutes FROM session_types WHERE id=?", (session_type_id,))
         row = cur.fetchone()
         if row:
             duration = row["duration_minutes"]
-            cur.execute("SELECT * FROM rooms WHERE center_id=?", (center_id,))
-            rooms = cur.fetchall()
+            
+            rooms = []
+            if doctor_id:
+                cur.execute("""SELECT r.*, dr.start_time as shift_start, dr.end_time as shift_end, dr.days as shift_days 
+                               FROM doctor_rooms dr 
+                               JOIN rooms r ON r.id = dr.room_id 
+                               WHERE dr.doctor_id = ? AND r.center_id = ?""", (doctor_id, center_id))
+                assigned_rows = cur.fetchall()
+                if assigned_rows:
+                    for dr in assigned_rows:
+                        dr_dict = dict(dr)
+                        r_days = dr_dict.get("shift_days", "")
+                        if r_days and str(r_days).strip():
+                            allowed_r_days = [normalize_arabic(x) for x in str(r_days).split(",") if x.strip()]
+                            if normalize_arabic(arabic_day_name) in allowed_r_days:
+                                rooms.append(dr_dict)
+                        else:
+                            rooms.append(dr_dict)
+            
+            if not rooms and not (doctor_id and cur.execute("SELECT 1 FROM doctor_rooms WHERE doctor_id=?", (doctor_id,)).fetchone()):
+                cur.execute("SELECT * FROM rooms WHERE center_id=?", (center_id,))
+                rooms = [dict(r) for r in cur.fetchall()]
+
             for r in rooms:
-                slots = available_slots(conn, "room", r["id"], day_str, duration)
+                slots = available_slots(conn, "room", r["id"], day_str, duration, doctor_id=doctor_id)
                 slots_by_resource.append(("room", r, slots))
 
     cur.execute("""SELECT b.*, st.name AS st_name, 
@@ -214,6 +315,9 @@ def day_view(day_str):
                            day_str=day_str,
                            center_id=center_id,
                            doctor_id=doctor_id,
+                           doctor=doctor,
+                           is_doctor_unavailable_today=is_doctor_unavailable_today,
+                           arabic_day_name=arabic_day_name,
                            session_type_id=session_type_id,
                            types=types,
                            doctors=doctors,

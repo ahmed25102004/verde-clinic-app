@@ -52,16 +52,44 @@
 
 <!-- Calendar Grid -->
 <div class="card border-0 shadow-lg p-3 p-md-4 rounded-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+  {% if doctor %}
+  <div class="alert alert-info bg-dark border-info text-info mb-3 rounded-3 d-flex align-items-center justify-content-between">
+    <div>
+      <i class="bi bi-funnel-fill me-2"></i>معاينة جدول الطبيب: <strong class="text-white">{{ doctor.name }}</strong>
+      {% if doctor.available_days %}
+      <span class="ms-2 text-secondary small">(أيام العمل المحددة له: <span class="text-warning">{{ doctor.available_days }}</span>)</span>
+      {% else %}
+      <span class="ms-2 text-success small">(متاح طوال أيام الأسبوع)</span>
+      {% endif %}
+    </div>
+    <span class="badge bg-primary">فلتر نشط</span>
+  </div>
+  {% endif %}
+
   <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-7 g-2 g-md-3">
-    {% for d in days %}
+    {% for item in days_data %}
+    {% set d = item.date %}
+    {% set day_name = item.day_name %}
+    {% set is_avail = item.is_available %}
     {% set is_today = (d == today) %}
     {% set is_past = (d < today) %}
     <div class="col">
+      {% if doctor and not is_avail %}
+      <div class="card h-100 p-3 text-center rounded-3 bg-dark opacity-40 border-danger border-opacity-25"
+           style="cursor: not-allowed;"
+           title="الدكتور غير متاح يوم {{ day_name }}"
+           onclick="alert('تنبيه: الطبيب ({{ doctor.name }}) غير متاح للعمل يوم {{ day_name }}. يرجى اختيار يوم آخر من الأيام المتاحة له.')">
+        <div class="small fw-semibold mb-1 text-muted">{{ day_name }}</div>
+        <div class="display-6 fw-bold mb-2 text-secondary opacity-50">{{ d.day }}</div>
+        <div>
+          <span class="badge bg-danger bg-opacity-20 text-danger border border-danger rounded-pill px-2 py-1 fs-7">غير متاح</span>
+        </div>
+      </div>
+      {% else %}
       <a href="{{ url_for('reservations.day_view', day_str=d.isoformat(), doctor_id=doctor.id if doctor else None) }}" 
-         class="card h-100 text-decoration-none p-3 text-center rounded-3 transition-all {% if is_today %}border-primary bg-primary bg-opacity-10{% elif is_past %}bg-dark opacity-50 border-secondary-subtle{% else %}bg-dark border-secondary-subtle hover-shadow{% endif %}">
+         class="card h-100 text-decoration-none p-3 text-center rounded-3 transition-all {% if is_today %}border-primary bg-primary bg-opacity-10{% elif is_past %}bg-dark opacity-50 border-secondary-subtle{% elif doctor and is_avail %}bg-dark border-success border-opacity-50 hover-shadow{% else %}bg-dark border-secondary-subtle hover-shadow{% endif %}">
         <div class="small fw-semibold mb-1 {% if is_today %}text-info{% else %}text-muted{% endif %}">
-          {% set weekday = d.weekday() %}
-          {% if weekday == 0 %}الإثنين{% elif weekday == 1 %}الثلاثاء{% elif weekday == 2 %}الأربعاء{% elif weekday == 3 %}الخميس{% elif weekday == 4 %}الجمعة{% elif weekday == 5 %}السبت{% else %}الأحد{% endif %}
+          {{ day_name }}
         </div>
         <div class="display-6 fw-bold mb-2 {% if is_today %}text-info{% else %}text-white{% endif %}">
           {{ d.day }}
@@ -71,11 +99,14 @@
           <span class="badge bg-primary text-white rounded-pill px-2 py-1 fs-7">اليوم</span>
           {% elif is_past %}
           <span class="badge bg-secondary text-light rounded-pill px-2 py-1 fs-7">مستند</span>
+          {% elif doctor and is_avail %}
+          <span class="badge bg-success bg-opacity-20 text-success border border-success rounded-pill px-2 py-1 fs-7">متاح للدكتور</span>
           {% else %}
           <span class="badge bg-info bg-opacity-20 text-info border border-info rounded-pill px-2 py-1 fs-7">متاح للحجز</span>
           {% endif %}
         </div>
       </a>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

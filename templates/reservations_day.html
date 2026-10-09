@@ -24,13 +24,23 @@
 </div>
 {% endif %}
 
+{% if doctor and is_doctor_unavailable_today %}
+<div class="alert alert-danger border-0 rounded-4 mb-4 d-flex align-items-center gap-3">
+  <i class="bi bi-exclamation-triangle-fill fs-3 text-danger"></i>
+  <div>
+    <h6 class="fw-bold mb-1 text-danger">تنبيه: الطبيب ({{ doctor.name }}) غير متاح للعمل في يوم {{ arabic_day_name }} ({{ day_str }})</h6>
+    <div class="small text-white opacity-75">أيام العمل المتاحة للطبيب: <strong class="text-warning">{{ doctor.available_days or 'جميع أيام الأسبوع' }}</strong></div>
+  </div>
+</div>
+{% endif %}
+
 <!-- Selection Filters -->
 <div class="card border-0 shadow-lg p-4 rounded-4 mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
   <form method="get" action="{{ url_for('reservations.day_view', day_str=day_str) }}" class="row g-3">
     <div class="col-md-6">
       <label class="form-label text-secondary fw-semibold small mb-1"><i class="bi bi-stopwatch text-info me-1"></i>نوع الجلسة (المدة الزمنية)</label>
       <select name="session_type_id" class="form-select bg-dark text-white border-secondary-subtle" onchange="this.form.submit()">
-        <option value="">اختر نوع الجلسة للبحث عن المواعيد Mتاحة...</option>
+        <option value="">اختر نوع الجلسة للبحث عن المواعيد المتاحة...</option>
         {% for t in types %}
         <option value="{{ t.id }}" {% if session_type_id == t.id %}selected{% endif %}>{{ t.name }} ({{ t.duration_minutes }} دقيقة)</option>
         {% endfor %}
@@ -51,7 +61,15 @@
 <!-- Slots Grid by Room -->
 {% if duration and not is_past %}
 <div class="mb-4">
-  <h5 class="fw-bold text-white mb-3"><i class="bi bi-grid-3x3-gap-fill text-info me-2"></i>الأوقات المتاحة للحجز (مدة {{ duration }} دقيقة):</h5>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="fw-bold text-white mb-0"><i class="bi bi-grid-3x3-gap-fill text-info me-2"></i>الأوقات المتاحة للحجز (مدة {{ duration }} دقيقة):</h5>
+    {% if doctor %}
+    <span class="badge bg-primary bg-opacity-20 text-info border border-info px-3 py-2">
+      <i class="bi bi-funnel-fill me-1"></i> مصفى للطبيب: {{ doctor.name }}
+      {% if doctor.shift_start and doctor.shift_end %}(مواعيد شفت: {{ doctor.shift_start }} - {{ doctor.shift_end }}){% endif %}
+    </span>
+    {% endif %}
+  </div>
   <div class="row g-4 mb-4">
     {% for typ, room, slots in slots_by_resource %}
     <div class="col-lg-6 col-xl-4">
