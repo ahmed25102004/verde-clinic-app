@@ -1,139 +1,137 @@
 {% extends 'layout.html' %} {% block content %}
-<style>
-  @media print {
-    body {
-      width: 80mm;
-      margin: 0;
-      font-size: 12px;
-    }
-
-    @page {
-      size: 80mm auto;
-      margin: 0;
-    }
-
-    .no-print {
-      display: none !important;
-    }
-
-    .card {
-      border: none;
-      box-shadow: none;
-      margin: 0;
-    }
-
-    .table {
-      font-size: 11px;
-    }
-
-    .card-header {
-      background: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
-      font-size: 13px;
-      padding: 5px 10px;
-    }
-
-    .card-body {
-      padding: 10px;
-    }
-  }
-</style>
-<div class="card mb-3">
-  <div class="card-header">إضافة باكج/جلسة</div>
-  <div class="card-body">
-    {% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-    <form method="post">
-      <div class="row g-2">
-        <div class="col-md-3">
-          <select class="form-select" name="category" required>
-            <option value="">الفئة</option>
-            <option value="cosmetic_sessions">جلسات التجميل</option>
-            <option value="cosmetic_packages">باكيدجات التجميل</option>
-            <option value="laser_sessions">جلسات الليزر</option>
-            <option value="laser_packages">باكيدجات الليزر</option>
-            <option value="pulse_packages">باكيدجات النبضات</option>
-          </select>
+<div class="container-fluid py-2">
+  <!-- Add Package Card -->
+  <div class="card mb-4 border-0 shadow-sm rounded-4">
+    <div class="card-header bg-dark text-white fw-bold py-3 fs-5">
+      <i class="bi bi-plus-circle-fill me-2 text-warning"></i> إضافة باكدج / جلسة وتحديد القسم
+    </div>
+    <div class="card-body p-4">
+      {% if error %}
+      <div class="alert alert-danger rounded-3 fw-bold">{{ error }}</div>
+      {% endif %}
+      <form method="post">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">الفئة والقسم المالي</label>
+            <select class="form-select form-select-lg" name="category" required>
+              <option value="">اختر الفئة والقسم...</option>
+              <optgroup label="✨ قسم التجميل والعناية بالبشرة">
+                <option value="cosmetic_sessions">جلسات التجميل</option>
+                <option value="cosmetic_packages">باكيدجات التجميل</option>
+              </optgroup>
+              <optgroup label="⚡ قسم الليزر والنبضات">
+                <option value="laser_sessions">جلسات الليزر</option>
+                <option value="laser_packages">باكيدجات الليزر</option>
+                <option value="pulse_packages">باكيدجات النبضات</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">اسم الخدمة / الباكدج</label>
+            <input
+              type="text"
+              class="form-control form-control-lg"
+              name="name"
+              placeholder="مثال: ليزر جسم كامل / هيدرافيسيال"
+              required
+            />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">عدد الجلسات</label>
+            <input
+              type="number"
+              class="form-control form-control-lg"
+              name="sessions_count"
+              placeholder="1"
+              required
+            />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">السعر (ج.م)</label>
+            <input
+              type="number"
+              class="form-control form-control-lg"
+              name="price"
+              placeholder="0"
+              required
+            />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">هدية (اختياري)</label>
+            <input
+              type="text"
+              class="form-control form-control-lg"
+              name="bonus"
+              placeholder="جلسة مجانية"
+            />
+          </div>
+          <div class="col-12 mt-4">
+            <button class="btn btn-primary btn-lg px-5 shadow-sm fw-bold" type="submit">
+              <i class="bi bi-check-lg me-1"></i> إضافة الخدمة
+            </button>
+          </div>
         </div>
-        <div class="col-md-3">
-          <input
-            type="text"
-            class="form-control"
-            name="name"
-            placeholder="الاسم"
-            required
-          />
-        </div>
-        <div class="col-md-2">
-          <input
-            type="number"
-            class="form-control"
-            name="sessions_count"
-            placeholder="عدد الجلسات"
-            required
-          />
-        </div>
-        <div class="col-md-2">
-          <input
-            type="number"
-            class="form-control"
-            name="price"
-            placeholder="السعر"
-            required
-          />
-        </div>
-        <div class="col-md-2">
-          <input
-            type="text"
-            class="form-control"
-            name="bonus"
-            placeholder="هدية (اختياري)"
-          />
-        </div>
-        <div class="col-12">
-          <button class="btn btn-primary" type="submit">إضافة</button>
-        </div>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
-</div>
 
-<div class="card">
-  <div class="card-header">القائمة الحالية</div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>الفئة</th>
-            <th>الاسم</th>
-            <th>عدد الجلسات</th>
-            <th>السعر</th>
-            <th>إجراء</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in rows %}
-          <tr>
-            <td>{{ r[0] }}</td>
-            <td>{{ r[1] }}</td>
-            <td>{{ r[2] }}</td>
-            <td>{{ r[3] }}</td>
-            <td>{{ r[4] }}</td>
-            <td>
-              <form method="post" action="/packages/delete">
-                <input type="hidden" name="id" value="{{ r[0] }}" />
-                <button class="btn btn-outline-danger btn-sm" type="submit">
-                  حذف
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- Packages List Table -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-secondary text-white fw-bold py-3 fs-5">
+      <i class="bi bi-list-stars me-2"></i> القائمة الحالية للخدمات والباكجات المتاحة
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 text-center">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th class="py-3">#</th>
+              <th class="py-3">القسم والفئة</th>
+              <th class="py-3">اسم الخدمة / الباكدج</th>
+              <th class="py-3">عدد الجلسات</th>
+              <th class="py-3">السعر</th>
+              <th class="py-3">إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td class="fw-bold">{{ r[0] }}</td>
+              <td>
+                {% if r[1] == 'cosmetic_sessions' %}
+                  <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-sparkles me-1"></i> قسم التجميل - جلسات</span>
+                {% elif r[1] == 'cosmetic_packages' %}
+                  <span class="badge bg-info text-dark fs-6 px-3 py-2"><i class="bi bi-box-seam me-1"></i> قسم التجميل - باكدجات</span>
+                {% elif r[1] == 'laser_sessions' %}
+                  <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-lightning me-1"></i> قسم الليزر - جلسات</span>
+                {% elif r[1] == 'laser_packages' %}
+                  <span class="badge bg-primary fs-6 px-3 py-2"><i class="bi bi-box me-1"></i> قسم الليزر - باكدجات</span>
+                {% elif r[1] == 'pulse_packages' %}
+                  <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-heart-pulse me-1"></i> قسم الليزر - نبضات</span>
+                {% else %}
+                  <span class="badge bg-secondary fs-6 px-3 py-2">{{ r[1] }}</span>
+                {% endif %}
+              </td>
+              <td class="fw-bold fs-6 text-white">{{ r[2] }}</td>
+              <td class="fs-6">{{ r[3] }}</td>
+              <td class="fw-bold text-success fs-5">{{ r[4] }} <small class="fs-6 text-muted">ج.م</small></td>
+              <td>
+                <form method="post" action="/packages/delete">
+                  <input type="hidden" name="id" value="{{ r[0] }}" />
+                  <button class="btn btn-outline-danger btn-sm px-3" type="submit" onclick="return confirm('هل أنت تأكد من إيقاف إتاحة هذه الباكدج؟')">
+                    <i class="bi bi-trash me-1"></i> حذف
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="py-4 text-muted">لا توجد خدمات أو باكدجات حالياً</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
