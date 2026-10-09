@@ -159,6 +159,7 @@ def inject_global_vars():
     res = {'allow_public_signup': False, 'unread_count': 0, 'notifications': []}
     if request.path.startswith('/static'):
         return res
+    conn = None
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -171,9 +172,14 @@ def inject_global_vars():
             res['unread_count'] = cur.fetchone()[0]
             cur.execute('SELECT id, message, type, created_at FROM notifications ORDER BY created_at DESC LIMIT 5')
             res['notifications'] = cur.fetchall()
-        conn.close()
     except Exception:
         pass
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
     return res
 
 

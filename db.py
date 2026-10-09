@@ -21,19 +21,22 @@ else:
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH, timeout=20.0)
-    conn.execute("PRAGMA foreign_keys=ON")
+    conn = sqlite3.connect(DB_PATH, timeout=30.0, check_same_thread=False)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=30000;")
+        conn.execute("PRAGMA temp_store=MEMORY;")
+        conn.execute("PRAGMA cache_size=-64000;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+    except Exception:
+        pass
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
     conn = get_conn()
-    try:
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
-    except Exception:
-        pass
     cur = conn.cursor()
 
     # Create tables if not exist
@@ -314,6 +317,29 @@ def init_db():
         FOREIGN KEY(session_type_id) REFERENCES session_types(id) ON DELETE CASCADE
     )
     """)
+
+    indexes = [
+        "CREATE INDEX IF NOT EXISTS idx_calendar_bookings_day ON calendar_bookings(day);",
+        "CREATE INDEX IF NOT EXISTS idx_calendar_bookings_doc_day ON calendar_bookings(doctor_id, day);",
+        "CREATE INDEX IF NOT EXISTS idx_calendar_bookings_room_day ON calendar_bookings(room_id, day);",
+        "CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(date);",
+        "CREATE INDEX IF NOT EXISTS idx_payments_booking ON payments(booking_id);",
+        "CREATE INDEX IF NOT EXISTS idx_payments_employee ON payments(employee_id);",
+        "CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);",
+        "CREATE INDEX IF NOT EXISTS idx_sessions_booking ON sessions(booking_id);",
+        "CREATE INDEX IF NOT EXISTS idx_sessions_employee ON sessions(employee_id);",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_customer ON bookings(customer_id);",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_start_date ON bookings(start_date);",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_next_session ON bookings(next_session_date);",
+        "CREATE INDEX IF NOT EXISTS idx_downtimes_day_res ON downtimes(day, resource_type, resource_id);",
+        "CREATE INDEX IF NOT EXISTS idx_doctor_rooms_doc ON doctor_rooms(doctor_id);",
+        "CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);"
+    ]
+    for idx_sql in indexes:
+        try:
+            cur.execute(idx_sql)
+        except Exception:
+            pass
 
     conn.commit()
     conn.close()

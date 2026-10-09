@@ -27,5 +27,5 @@ RUN mkdir -p /app/backups /app/exports
 # Expose application port
 EXPOSE 5007
 
-# Start application using Gunicorn (Multithreaded gthread mode for high concurrency)
-CMD ["gunicorn", "--bind", "0.0.0.0:5007", "--workers", "3", "--threads", "4", "--worker-class", "gthread", "--timeout", "60", "wsgi:app"]
+# Start application using Gunicorn (Multithreaded gthread mode for high concurrency and ultra-low latency)
+CMD ["gunicorn", "--bind", "0.0.0.0:5007", "--workers", "4", "--threads", "4", "--worker-class", "gthread", "--timeout", "120", "--keep-alive", "5", "--max-requests", "1000", "--max-requests-jitter", "50", "wsgi:app"]
