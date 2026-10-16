@@ -941,4 +941,53 @@ def search():
 
     return render_template("reservations_search.html", q=q, results=bookings_results, waitlist_results=waitlist_results)
 
+@reservations_bp.route("/reservations/customers")
+@login_required
+def reservations_customers():
+    q = request.args.get("q", "").strip()
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("SELECT COUNT(DISTINCT customer_name || '-' || COALESCE(phone, '')) FROM calendar_bookings")
+    total_count = cur.fetchone()[0]
+
+    if q:
+        query = """SELECT 
+                       MIN(b.id) AS first_id,
+                       MAX(b.id) AS latest_id,
+                       b.customer_name,
+                       b.phone,
+                       b.area,
+                       COUNT(b.id) AS appointments_count,
+                       MAX(b.day) AS latest_day,
+                       MIN(b.day) AS first_day,
+                       MAX(b.notes) AS notes
+                   FROM calendar_bookings b
+                   WHERE b.customer_name LIKE ? OR b.phone LIKE ? OR b.area LIKE ? OR b.notes LIKE ?
+                   GROUP BY b.customer_name, COALESCE(b.phone, '')
+                   ORDER BY latest_id DESC
+                   LIMIT 50"""
+        cur.execute(query, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
+    else:
+        query = """SELECT 
+                       MIN(b.id) AS first_id,
+                       MAX(b.id) AS latest_id,
+                       b.customer_name,
+                       b.phone,
+                       b.area,
+                       COUNT(b.id) AS appointments_count,
+                       MAX(b.day) AS latest_day,
+                       MIN(b.day) AS first_day,
+                       MAX(b.notes) AS notes
+                   FROM calendar_bookings b
+                   GROUP BY b.customer_name, COALESCE(b.phone, '')
+                   ORDER BY latest_id DESC
+                   LIMIT 10"""
+        cur.execute(query)
+
+    rows = cur.fetchall()
+    conn.close()
+    return render_template("reservations_customers.html", rows=rows, q=q, total_count=total_count)
+
+
 

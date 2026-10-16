@@ -115,7 +115,7 @@
             </div>
 
             <!-- Group 3: إدارة العملاء والموظفين -->
-            {% set is_cust_active = (request.path == '/customers' or request.path == '/employees' or request.path == '/packages' or '/customer' in request.path) %}
+            {% set is_cust_active = (request.path == '/customers' or request.path == '/reservations/customers' or request.path == '/employees' or request.path == '/packages' or '/customer' in request.path) %}
             <div class="sidebar-group">
               <button class="sidebar-group-btn {% if not is_cust_active %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#group-customers" aria-expanded="{{ 'true' if is_cust_active else 'false' }}">
                 <div class="d-flex align-items-center gap-2">
@@ -127,11 +127,15 @@
               <div class="collapse {% if is_cust_active %}show{% endif %}" id="group-customers">
                 <div class="sidebar-sub-menu ps-2 pt-1">
                   {% if session.employee_role == 'manager' %}
-                  <a href="{{ url_for('report.customers_list') }}" class="sidebar-link {% if request.path == '/customers' or '/customer' in request.path %}active{% endif %}">
-                    <i class="bi bi-person-lines-fill"></i>
-                    <span>قائمة العملاء</span>
+                  <a href="{{ url_for('report.customers_list') }}" class="sidebar-link {% if request.path == '/customers' or ('/customer' in request.path and '/reservations' not in request.path) %}active{% endif %}">
+                    <i class="bi bi-wallet2 text-warning"></i>
+                    <span>قائمة عملاء الحسابات</span>
                   </a>
                   {% endif %}
+                  <a href="{{ url_for('reservations.reservations_customers') }}" class="sidebar-link {% if request.path == '/reservations/customers' %}active{% endif %}">
+                    <i class="bi bi-calendar-check text-info"></i>
+                    <span>قائمة عملاء الحجوزات</span>
+                  </a>
                   <a href="{{ url_for('employee.employees') }}" class="sidebar-link {% if request.path == '/employees' %}active{% endif %}">
                     <i class="bi bi-person-vcard"></i>
                     <span>فريق الموظفين</span>

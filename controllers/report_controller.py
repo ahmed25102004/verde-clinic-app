@@ -325,12 +325,31 @@ def dashboard():
 @report_bp.route("/customers")
 @manager_required
 def customers_list():
+    q = request.args.get("q", "").strip()
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("""SELECT c.id, c.name, c.phone, c.note, c.created_at, COUNT(b.id) AS bookings_count FROM customers c LEFT JOIN bookings b ON b.customer_id = c.id GROUP BY c.id ORDER BY c.id DESC""")
+    
+    cur.execute("SELECT COUNT(*) FROM customers")
+    total_count = cur.fetchone()[0]
+    
+    if q:
+        cur.execute("""SELECT c.id, c.name, c.phone, c.note, c.created_at, COUNT(b.id) AS bookings_count 
+                       FROM customers c 
+                       LEFT JOIN bookings b ON b.customer_id = c.id 
+                       WHERE c.name LIKE ? OR c.phone LIKE ? OR c.note LIKE ?
+                       GROUP BY c.id 
+                       ORDER BY c.id DESC 
+                       LIMIT 50""", (f"%{q}%", f"%{q}%", f"%{q}%"))
+    else:
+        cur.execute("""SELECT c.id, c.name, c.phone, c.note, c.created_at, COUNT(b.id) AS bookings_count 
+                       FROM customers c 
+                       LEFT JOIN bookings b ON b.customer_id = c.id 
+                       GROUP BY c.id 
+                       ORDER BY c.id DESC 
+                       LIMIT 10""")
     customers = cur.fetchall()
     conn.close()
-    return render_template("customers.html", customers=customers, rows=customers)
+    return render_template("customers.html", customers=customers, rows=customers, q=q, total_count=total_count)
 
 @report_bp.route("/packages", methods=["GET", "POST"])
 @manager_required

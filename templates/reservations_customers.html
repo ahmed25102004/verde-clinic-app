@@ -1,0 +1,148 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container-fluid py-2">
+  
+  <!-- Header Title -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="bi bi-calendar-check text-info me-2"></i>قائمة عملاء الحجوزات والمواعيد</h3>
+      <p class="text-secondary fs-6 mb-0">سجل العملاء الذين قاموا بحجز مواعيد في جدول العيادة والغرف</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('reservations.calendar') }}" class="btn btn-info text-dark fw-bold shadow-sm">
+        <i class="bi bi-calendar3 me-1"></i> جدول المواعيد والتقويم
+      </a>
+      <a href="{{ url_for('reservations.waitlist') }}" class="btn btn-outline-light px-3">
+        <i class="bi bi-clock-history me-1"></i> قائمة الانتظار
+      </a>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation (حسابات vs حجوزات) -->
+  <ul class="nav nav-pills nav-justified mb-4 gap-3 p-2 rounded-4 shadow-sm" style="background-color: var(--bg-sidebar);">
+    <li class="nav-item" role="presentation">
+      <a class="nav-link text-white fw-bold fs-6 py-2.5 rounded-3" href="{{ url_for('report.customers_list') }}">
+        <i class="bi bi-wallet2 me-2 text-warning"></i> قائمة عملاء الحسابات
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link active fw-bold fs-6 py-2.5 rounded-3" href="{{ url_for('reservations.reservations_customers') }}">
+        <i class="bi bi-calendar-check me-2 text-info"></i> قائمة عملاء الحجوزات
+      </a>
+    </li>
+  </ul>
+
+  <!-- Search Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <form method="get" action="{{ url_for('reservations.reservations_customers') }}" class="row g-2 align-items-center">
+      <div class="col-md-9 col-lg-10">
+        <div class="input-group">
+          <span class="input-group-text bg-dark border-secondary text-info"><i class="bi bi-search"></i></span>
+          <input
+            type="search"
+            class="form-control bg-dark text-white border-secondary"
+            name="q"
+            value="{{ q }}"
+            placeholder="ابحث في عملاء الحجوزات بالاسم، رقم الهاتف، أو المنطقة..."
+            autofocus
+          />
+        </div>
+      </div>
+      <div class="col-md-3 col-lg-2 d-flex gap-2">
+        <button class="btn btn-info text-dark fw-bold w-100 shadow-sm" type="submit">
+          <i class="bi bi-search me-1"></i> بحث
+        </button>
+        {% if q %}
+        <a href="{{ url_for('reservations.reservations_customers') }}" class="btn btn-outline-secondary" title="إلغاء البحث">
+          <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Notice Banner for 10 records limit -->
+  <div class="alert alert-dark border border-secondary border-opacity-50 rounded-4 d-flex align-items-center justify-content-between mb-4 py-2 px-3">
+    <div class="d-flex align-items-center gap-2 small">
+      <i class="bi bi-info-circle-fill text-info fs-5"></i>
+      {% if q %}
+      <span>نتائج البحث في الحجوزات عن: <strong class="text-info">"{{ q }}"</strong> (عدد العملاء: <span class="badge bg-info text-dark">{{ rows|length }}</span>)</span>
+      {% else %}
+      <span>يتم عرض <strong class="text-info">آخر 10 عملاء</strong> سجلوا مواعيد في الحجوزات (إجمالي العملاء: <span class="badge bg-secondary">{{ total_count }}</span>). للوصول لبقية العملاء يرجى استخدام خانة البحث.</span>
+      {% endif %}
+    </div>
+    {% if not q and total_count > 10 %}
+    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1">عرض آخر 10 مسجلين</span>
+    {% endif %}
+  </div>
+
+  <!-- Reservations Customers Table -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <div class="card-header bg-dark text-white py-3 px-4 border-bottom border-secondary d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">
+        <i class="bi bi-people-fill text-info me-2"></i>سجل عملاء الحجوزات ({{ rows|length }})
+      </h5>
+      <span class="badge bg-secondary">{{ 'نتائج مطابقة' if q else 'أحدث 10 عملاء' }}</span>
+    </div>
+    <div class="card-body p-0">
+      {% if rows|length == 0 %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+        {% if q %}
+        لم يتم العثور على أي عميل مطابق لبحثك عن "{{ q }}" في الحجوزات
+        {% else %}
+        لا توجد بيانات عملاء مسجلة في الحجوزات حتى الآن
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 text-center">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th class="py-3">#</th>
+              <th class="py-3 text-start ps-4">اسم العميل</th>
+              <th class="py-3">رقم الهاتف</th>
+              <th class="py-3">المنطقة / التفاصيل</th>
+              <th class="py-3">أحدث موعد حجز</th>
+              <th class="py-3">عدد المواعيد</th>
+              <th class="py-3">ملاحظات</th>
+              <th class="py-3">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td class="fw-bold text-muted">{{ loop.index }}</td>
+              <td class="fw-bold text-white text-start ps-4 fs-6">
+                <i class="bi bi-person-circle text-info me-1"></i> {{ r['customer_name'] }}
+              </td>
+              <td class="text-info fw-semibold">{{ r['phone'] or '-' }}</td>
+              <td>{{ r['area'] or '-' }}</td>
+              <td>
+                <span class="badge bg-primary px-3 py-1.5 fs-6">{{ r['latest_day'] }}</span>
+              </td>
+              <td>
+                <span class="badge bg-secondary px-3 py-1.5 fs-6">{{ r['appointments_count'] }} موعد</span>
+              </td>
+              <td class="small text-muted text-truncate" style="max-width: 180px;">{{ r['notes'] or '-' }}</td>
+              <td>
+                <div class="d-flex justify-content-center gap-1">
+                  <a class="btn btn-sm btn-info text-dark px-3 shadow-sm fw-bold" href="{{ url_for('reservations.search', q=r['customer_name']) }}" title="عرض كافة مواعيد العميل">
+                    <i class="bi bi-clock-history me-1"></i> المواعيد
+                  </a>
+                  <a class="btn btn-sm btn-outline-light px-2" href="{{ url_for('reservations.day_view', day_str=r['latest_day']) }}" title="فتح يوم الموعد في التقويم">
+                    <i class="bi bi-calendar-event"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

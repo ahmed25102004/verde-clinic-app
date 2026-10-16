@@ -1,71 +1,146 @@
-{% extends 'layout.html' %}{% block content %}
-<div class="card">
-  <div class="card-header">👥 العملاء</div>
-  <div class="card-body">
-    {% if rows|length == 0 %} لا توجد بيانات عملاء {% else %}
-    <div class="table-responsive">
-      <table class="table table-bordered align-middle">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>الاسم</th>
-            <th>الهاتف</th>
-            <th>الملاحظات</th>
-            <th>تاريخ الإنشاء</th>
-            <th>عدد الحجوزات</th>
-            <th>إجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for c in rows %}
-          <tr>
-            <td>{{ c[0] }}</td>
-            <td>{{ c[1] }}</td>
-            <td>{{ c[2] }}</td>
-            <td>{{ c[3] }}</td>
-            <td>{{ c[4] }}</td>
-            <td>{{ c[5] }}</td>
-            <td class="d-flex gap-2">
-              <a
-                class="btn btn-sm btn-outline-primary"
-                href="/customer/{{ c[0] }}"
-                >عرض</a
-              >
-              <a
-                class="btn btn-sm btn-outline-secondary"
-                href="/export_customer/{{ c[0] }}"
-                >تصدير إكسل</a
-              >
-              {% if session.employee_role == 'manager' %}
-              <form
-                method="post"
-                action="/customers/{{ c[0] }}/delete"
-                onsubmit="return confirm('حذف العميل وكل حجوزاته وجلساته ومدفوعاته نهائيًا؟');"
-              >
-                <button class="btn btn-sm btn-outline-danger" type="submit">
-                  حذف نهائي
-                </button>
-              </form>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container-fluid py-2">
+  
+  <!-- Header Title -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="bi bi-wallet2 text-warning me-2"></i>قائمة عملاء الحسابات والمالية</h3>
+      <p class="text-secondary fs-6 mb-0">سجل العملاء المشتركين بالباكدجات والجلسات المالية وحركات الدفع</p>
     </div>
-    {% endif %}
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('index') }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i> تسجيل عميل وباكدج جديد
+      </a>
+    </div>
   </div>
-  <div class="card-footer">
-    <form class="d-flex" role="search" action="/customer" method="get">
-      <input
-        class="form-control me-2"
-        type="search"
-        name="q"
-        placeholder="بحث بالاسم أو الموبايل"
-        value="{{ request.args.q or '' }}"
-      />
-      <button class="btn btn-primary" type="submit">بحث</button>
+
+  <!-- Tabs Navigation (حسابات vs حجوزات) -->
+  <ul class="nav nav-pills nav-justified mb-4 gap-3 p-2 rounded-4 shadow-sm" style="background-color: var(--bg-sidebar);">
+    <li class="nav-item" role="presentation">
+      <a class="nav-link active fw-bold fs-6 py-2.5 rounded-3" href="{{ url_for('report.customers_list') }}">
+        <i class="bi bi-wallet2 me-2 text-warning"></i> قائمة عملاء الحسابات
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link text-white fw-bold fs-6 py-2.5 rounded-3" href="{{ url_for('reservations.reservations_customers') }}">
+        <i class="bi bi-calendar-check me-2 text-info"></i> قائمة عملاء الحجوزات
+      </a>
+    </li>
+  </ul>
+
+  <!-- Search Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <form method="get" action="{{ url_for('report.customers_list') }}" class="row g-2 align-items-center">
+      <div class="col-md-9 col-lg-10">
+        <div class="input-group">
+          <span class="input-group-text bg-dark border-secondary text-warning"><i class="bi bi-search"></i></span>
+          <input
+            type="search"
+            class="form-control bg-dark text-white border-secondary"
+            name="q"
+            value="{{ q }}"
+            placeholder="ابحث في عملاء الحسابات بالاسم، رقم الموبايل، أو الملاحظات..."
+            autofocus
+          />
+        </div>
+      </div>
+      <div class="col-md-3 col-lg-2 d-flex gap-2">
+        <button class="btn btn-warning text-dark fw-bold w-100 shadow-sm" type="submit">
+          <i class="bi bi-search me-1"></i> بحث
+        </button>
+        {% if q %}
+        <a href="{{ url_for('report.customers_list') }}" class="btn btn-outline-secondary" title="إلغاء البحث">
+          <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+      </div>
     </form>
   </div>
+
+  <!-- Notice Banner for 10 records limit -->
+  <div class="alert alert-dark border border-secondary border-opacity-50 rounded-4 d-flex align-items-center justify-content-between mb-4 py-2 px-3">
+    <div class="d-flex align-items-center gap-2 small">
+      <i class="bi bi-info-circle-fill text-info fs-5"></i>
+      {% if q %}
+      <span>نتائج البحث في الحسابات عن: <strong class="text-warning">"{{ q }}"</strong> (عدد العملاء: <span class="badge bg-warning text-dark">{{ rows|length }}</span>)</span>
+      {% else %}
+      <span>يتم عرض <strong class="text-warning">آخر 10 عملاء</strong> تم تسجيلهم في الحسابات (إجمالي العملاء: <span class="badge bg-secondary">{{ total_count }}</span>). للوصول لبقية العملاء يرجى استخدام خانة البحث.</span>
+      {% endif %}
+    </div>
+    {% if not q and total_count > 10 %}
+    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-2 py-1">عرض آخر 10 مسجلين</span>
+    {% endif %}
+  </div>
+
+  <!-- Customers Table -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <div class="card-header bg-dark text-white py-3 px-4 border-bottom border-secondary d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">
+        <i class="bi bi-people-fill text-warning me-2"></i>سجل عملاء الحسابات ({{ rows|length }})
+      </h5>
+      <span class="badge bg-secondary">{{ 'نتائج مطابقة' if q else 'أحدث 10 تسجيلات' }}</span>
+    </div>
+    <div class="card-body p-0">
+      {% if rows|length == 0 %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-person-x fs-1 d-block mb-2 text-secondary"></i>
+        {% if q %}
+        لم يتم العثور على أي عميلة مطابقة لبحثك عن "{{ q }}" في الحسابات
+        {% else %}
+        لا توجد بيانات عملاء مسجلة في الحسابات حتى الآن
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 text-center">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th class="py-3">#</th>
+              <th class="py-3 text-start ps-4">اسم العميلة</th>
+              <th class="py-3">رقم الموبايل</th>
+              <th class="py-3">تاريخ التسجيل</th>
+              <th class="py-3">عدد الحجوزات والباكدجات</th>
+              <th class="py-3">الملاحظات</th>
+              <th class="py-3">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in rows %}
+            <tr>
+              <td class="fw-bold text-muted">{{ c[0] }}</td>
+              <td class="fw-bold text-white text-start ps-4 fs-6">
+                <i class="bi bi-person-circle text-warning me-1"></i> {{ c[1] }}
+              </td>
+              <td class="text-info fw-semibold">{{ c[2] or '-' }}</td>
+              <td class="small text-muted">{{ (c[4] or '')[:10] }}</td>
+              <td><span class="badge bg-primary px-3 py-1.5 fs-6">{{ c[5] }} باكدج</span></td>
+              <td class="small text-muted text-truncate" style="max-width: 180px;">{{ c[3] or '-' }}</td>
+              <td>
+                <div class="d-flex justify-content-center gap-1">
+                  <a class="btn btn-sm btn-primary px-3 shadow-sm fw-bold" href="/customer/{{ c[0] }}" title="فتح ملف العميل">
+                    <i class="bi bi-folder2-open me-1"></i> فتح الملف
+                  </a>
+                  <a class="btn btn-sm btn-outline-success px-2" href="/export_customer/{{ c[0] }}" title="تصدير إكسل للعميل">
+                    <i class="bi bi-file-earmark-excel"></i>
+                  </a>
+                  {% if session.employee_role == 'manager' %}
+                  <form method="post" action="/customers/{{ c[0] }}/delete" onsubmit="return confirm('هل أنت متأكد من حذف العميل وكل حجوزاته ومدفوعاته نهائياً؟');" class="d-inline">
+                    <button class="btn btn-sm btn-outline-danger p-1 px-2" type="submit" title="حذف نهائي">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
 </div>
 {% endblock %}
