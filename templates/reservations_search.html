@@ -1,0 +1,201 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container-fluid py-2">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold text-white mb-1"><i class="bi bi-calendar-check text-info me-2"></i>البحث في حجوزات ومواعيد العيادة</h3>
+      <p class="text-secondary fs-6 mb-0">البحث السريع عن مواعيد العملاء في جدول الحجوزات وقائمة الانتظار</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('reservations.calendar') }}" class="btn btn-outline-light px-3">
+        <i class="bi bi-calendar3 me-1"></i> التقويم الكامل
+      </a>
+      <a href="{{ url_for('reservations.waitlist') }}" class="btn btn-outline-info px-3">
+        <i class="bi bi-clock-history me-1"></i> قائمة الانتظار
+      </a>
+    </div>
+  </div>
+
+  <!-- Search Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <form method="get" action="{{ url_for('reservations.search') }}">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-9 col-lg-10">
+          <div class="input-group input-group-lg">
+            <span class="input-group-text bg-dark border-secondary text-info"><i class="bi bi-search"></i></span>
+            <input
+              type="search"
+              class="form-control bg-dark text-white border-secondary"
+              name="q"
+              value="{{ q }}"
+              placeholder="اكتب اسم العميل، رقم الهاتف، أو المنطقة للبحث في الحجوزات..."
+              autofocus
+              required
+            />
+          </div>
+          <div class="form-text text-muted mt-2">
+            يمكنك كتابة الاسم جزئياً أو رقم الهاتف للبحث السريع في كافة مواعيد الحجوزات السابقة والقادمة.
+          </div>
+        </div>
+        <div class="col-md-3 col-lg-2">
+          <button class="btn btn-info text-dark btn-lg w-100 fw-bold shadow-sm" type="submit">
+            <i class="bi bi-search me-1"></i> بحث
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if q %}
+  <!-- Bookings Results -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center border-bottom border-secondary">
+      <h5 class="fw-bold mb-0">
+        <i class="bi bi-calendar-event text-info me-2"></i>نتائج الحجوزات المسجلة ({{ results|length }})
+      </h5>
+      <span class="badge bg-secondary">بحث عن: {{ q }}</span>
+    </div>
+    <div class="card-body p-0">
+      {% if results %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 text-center">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th>#</th>
+              <th>اسم العميل</th>
+              <th>رقم الهاتف</th>
+              <th>تاريخ الموعد</th>
+              <th>التوقيت</th>
+              <th>نوع الجلسة</th>
+              <th>العيادة / الغرفة</th>
+              <th>الطبيب / الأخصائي</th>
+              <th>الحالة</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td class="fw-bold text-white text-start ps-3">{{ r['customer_name'] }}</td>
+              <td class="text-info">{{ r['phone'] or '-' }}</td>
+              <td><span class="badge bg-primary fs-6 px-3 py-1.5">{{ r['day'] }}</span></td>
+              <td class="fw-bold">{{ r['start_time'] }} - {{ r['end_time'] }}</td>
+              <td><span class="badge bg-secondary text-light">{{ r['st_name'] }}</span></td>
+              <td>{{ r['room_name'] or '-' }}</td>
+              <td>
+                {% if r['doctor_name'] %}
+                <span class="badge bg-info text-dark fw-bold">{{ r['doctor_name'] }}</span>
+                {% else %}-{% endif %}
+              </td>
+              <td>
+                {% if r['status'] == 'confirmed' %}
+                <span class="badge bg-success">مؤكد</span>
+                {% elif r['status'] == 'canceled' or r['status'] == 'cancelled' %}
+                <span class="badge bg-danger">ملغي</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted">{{ r['notes'] or '-' }}</td>
+              <td>
+                <div class="d-flex justify-content-center gap-1">
+                  <a href="{{ url_for('reservations.day_view', day_str=r['day']) }}" class="btn btn-sm btn-outline-info p-1 px-2" title="فتح جدول هذا اليوم">
+                    <i class="bi bi-calendar-check"></i>
+                  </a>
+                  <form method="post" action="{{ url_for('reservations.update_status', b_id=r['id']) }}" class="d-inline">
+                    <input type="hidden" name="next" value="{{ request.full_path }}" />
+                    {% if r['status'] != 'confirmed' %}
+                    <button type="submit" name="status" value="confirmed" class="btn btn-sm btn-outline-success p-1 px-2" title="تأكيد الحجز"><i class="bi bi-check-lg"></i></button>
+                    {% endif %}
+                    {% if r['status'] != 'canceled' and r['status'] != 'cancelled' %}
+                    <button type="submit" name="status" value="canceled" class="btn btn-sm btn-outline-warning p-1 px-2" title="إلغاء الموعد"><i class="bi bi-x-circle"></i></button>
+                    {% endif %}
+                  </form>
+                  <form method="post" action="{{ url_for('reservations.delete_booking', b_id=r['id']) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الحجز نهائياً؟');">
+                    <input type="hidden" name="next" value="{{ request.full_path }}" />
+                    <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="حذف الحجز"><i class="bi bi-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+        لا توجد مواعيد حجوزات مطابقة لبحثك عن ({{ q }})
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Waitlist Results -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center border-bottom border-secondary">
+      <h5 class="fw-bold mb-0">
+        <i class="bi bi-person-lines-fill text-warning me-2"></i>نتائج قائمة الانتظار ({{ waitlist_results|length }})
+      </h5>
+      <span class="badge bg-secondary">بحث عن: {{ q }}</span>
+    </div>
+    <div class="card-body p-0">
+      {% if waitlist_results %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 text-center">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th>#</th>
+              <th>اسم العميل</th>
+              <th>رقم الهاتف</th>
+              <th>اليوم المطلوب</th>
+              <th>نوع الجلسة</th>
+              <th>ملاحظات الانتظار</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for w in waitlist_results %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td class="fw-bold text-white text-start ps-3">{{ w['customer_name'] }}</td>
+              <td class="text-info">{{ w['phone'] or '-' }}</td>
+              <td><span class="badge bg-warning text-dark fs-6 px-3 py-1.5">{{ w['day'] }}</span></td>
+              <td><span class="badge bg-secondary text-light">{{ w['st_name'] }}</span></td>
+              <td class="small text-muted">{{ w['notes'] or '-' }}</td>
+              <td>
+                <div class="d-flex justify-content-center gap-2">
+                  <a href="{{ url_for('reservations.day_view', day_str=w['day'], session_type_id=w['session_type_id']) }}" class="btn btn-sm btn-success px-3 fw-semibold">
+                    <i class="bi bi-calendar-plus me-1"></i> تسكين الموعد
+                  </a>
+                  <form method="post" action="{{ url_for('reservations.delete_waitlist', w_id=w['id']) }}" onsubmit="return confirm('هل أنت متأكد من حذف هذا العميل من قائمة الانتظار؟');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف من الانتظار">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        لا توجد أسماء في قائمة الانتظار مطابقة لبحثك عن ({{ q }})
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <!-- Empty State -->
+  <div class="card border-0 shadow-sm rounded-4 p-5 text-center" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <i class="bi bi-search fs-1 text-info d-block mb-3"></i>
+    <h4 class="fw-bold text-white mb-2">ابحث في حجوزات ومواعيد العيادة</h4>
+    <p class="text-secondary fs-6 mb-0">أدخل اسم العميلة أو رقم الموبايل في الحقل أعلاه للبحث الفوري عن مواعيد الحجز المسجلة لها أو في قائمة الانتظار.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

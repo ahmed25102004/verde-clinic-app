@@ -296,7 +296,25 @@ body {
 
 .topbar-search {
   position: relative;
-  width: 340px;
+  width: 270px;
+}
+
+@media (min-width: 1400px) {
+  .topbar-search {
+    width: 320px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .topbar-search {
+    width: 220px;
+  }
+}
+
+@media (max-width: 992px) {
+  .topbar-search {
+    width: 185px;
+  }
 }
 
 .topbar-search input {
@@ -700,6 +718,10 @@ body {
     right: 0;
   }
   .topbar-search {
-    width: 200px;
+    width: 175px;
+  }
+  .topbar-search input {
+    font-size: 0.78rem;
+    padding-left: 2rem;
   }
 }

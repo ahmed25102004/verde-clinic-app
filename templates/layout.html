@@ -44,6 +44,10 @@
                     <i class="bi bi-calendar3"></i>
                     <span>التقويم الشهري</span>
                   </a>
+                  <a href="{{ url_for('reservations.search') }}" class="sidebar-link {% if '/reservations/search' in request.path %}active{% endif %}">
+                    <i class="bi bi-search"></i>
+                    <span>البحث في الحجوزات</span>
+                  </a>
                   <a href="{{ url_for('reservations.doctors') }}" class="sidebar-link {% if '/reservations/doctors' in request.path %}active{% endif %}">
                     <i class="bi bi-person-badge"></i>
                     <span>الأطباء والأخصائيين</span>
@@ -188,13 +192,21 @@
       <main class="app-content">
         <!-- Topbar Header -->
         <header class="app-topbar">
-          <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center gap-2 gap-md-3">
             <button class="btn btn-outline-light d-lg-none p-2" id="sidebarToggle">
               <i class="bi bi-list fs-4"></i>
             </button>
-            <form class="topbar-search d-none d-sm-block" action="/customer" method="get">
-              <i class="bi bi-search"></i>
-              <input type="search" name="q" placeholder="بحث بالاسم أو الموبايل..." value="{{ request.args.q or '' }}" />
+            
+            <!-- بحث الحسابات والعملاء -->
+            <form class="topbar-search d-none d-sm-block" action="/customer" method="get" title="البحث في حسابات العملاء">
+              <i class="bi bi-wallet2 text-warning"></i>
+              <input type="search" name="q" placeholder="بحث في الحسابات (الاسم/الموبايل)..." value="{{ request.args.q if request.path == '/customer' else '' }}" />
+            </form>
+
+            <!-- بحث الحجوزات والمواعيد -->
+            <form class="topbar-search d-none d-sm-block" action="{{ url_for('reservations.search') }}" method="get" title="البحث في حجوزات ومواعيد العيادة">
+              <i class="bi bi-calendar-check text-info"></i>
+              <input type="search" name="q" placeholder="بحث في الحجوزات (الاسم/الموبايل)..." value="{{ request.args.q if '/reservations/search' in request.path else '' }}" />
             </form>
           </div>
 

@@ -1,10 +1,12 @@
 {% extends 'layout.html' %} {% block content %}
-<div class="card">
-  <div class="card-header">بحث عن عميلة</div>
+<div class="card border-0 shadow-sm rounded-4 p-2 mb-4">
+  <div class="card-header bg-transparent border-bottom border-secondary fw-bold text-white fs-5">
+    <i class="bi bi-wallet2 text-warning me-2"></i>البحث في حسابات العملاء
+  </div>
   <div class="card-body">
     {% if not_found %}
     <div class="alert alert-danger">
-      لم يتم العثور على عميلة بهذا الاسم أو الموبايل
+      لم يتم العثور على عميلة بهذا الاسم أو الموبايل في الحسابات
     </div>
     {% endif %} {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
@@ -18,7 +20,7 @@
               type="search"
               class="form-control"
               name="q"
-              placeholder="الاسم أو رقم الموبايل"
+              placeholder="بحث في الحسابات (الاسم أو الموبايل)..."
               value="{{ request.args.q or request.args.phone or request.args.name or '' }}"
               autofocus
             />

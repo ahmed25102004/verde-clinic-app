@@ -454,6 +454,9 @@ def update_status(b_id):
     day_str = row["day"] if row else date.today().isoformat()
     conn.close()
     flash("تم تحديث حالة الحجز بنجاح", "success")
+    next_url = request.form.get("next") or (request.referrer if request.referrer and 'search' in request.referrer else None)
+    if next_url:
+        return redirect(next_url)
     return redirect(url_for("reservations.day_view", day_str=day_str))
 
 @reservations_bp.route("/reservations/booking/delete/<int:b_id>", methods=["POST"])
@@ -469,6 +472,9 @@ def delete_booking(b_id):
     conn.commit()
     conn.close()
     flash("تم حذف الحجز بنجاح", "success")
+    next_url = request.form.get("next") or (request.referrer if request.referrer and 'search' in request.referrer else None)
+    if next_url:
+        return redirect(next_url)
     return redirect(url_for("reservations.day_view", day_str=day_str))
 
 # -------------------------------------------------------------
@@ -897,4 +903,42 @@ def export_day():
         as_attachment=True,
         download_name=filename
     )
+
+@reservations_bp.route("/reservations/search")
+@login_required
+def search():
+    q = (request.args.get("q") or request.args.get("query") or "").strip()
+    bookings_results = []
+    waitlist_results = []
+
+    if q:
+        conn = get_conn()
+        cur = conn.cursor()
+
+        param = f"%{q}%"
+        # Search in calendar_bookings with session type, room, and doctor details
+        cur.execute("""SELECT b.*, st.name AS st_name, dc.name AS doctor_name, r.name AS room_name
+                       FROM calendar_bookings b
+                       JOIN session_types st ON st.id=b.session_type_id
+                       LEFT JOIN rooms r ON r.id=b.room_id
+                       LEFT JOIN doctors dc ON dc.id=b.doctor_id
+                       WHERE (b.customer_name LIKE ? OR b.phone LIKE ? OR b.area LIKE ? OR b.notes LIKE ?)
+                       ORDER BY b.day DESC, b.start_time DESC""", (param, param, param, param))
+        bookings_results = cur.fetchall()
+
+        # Search in waitlist
+        try:
+            cur.execute("""SELECT w.*, st.name AS st_name
+                           FROM waitlist w
+                           JOIN session_types st ON st.id=w.session_type_id
+                           WHERE (w.customer_name LIKE ? OR w.phone LIKE ? OR w.notes LIKE ?)
+                           ORDER BY w.day DESC, w.created_at DESC""", (param, param, param))
+            waitlist_results = cur.fetchall()
+        except Exception:
+            waitlist_results = []
+
+        conn.close()
+
+    return render_template("reservations_search.html", q=q, results=bookings_results, waitlist_results=waitlist_results)
+
 
