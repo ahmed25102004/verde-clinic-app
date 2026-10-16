@@ -2,7 +2,8 @@ import os
 import json
 import secrets
 from datetime import datetime, date, time, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, abort
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, abort, send_file
+from io import BytesIO
 from db import get_conn
 from auth import login_required, manager_required
 
@@ -755,3 +756,145 @@ def report_day():
     conn.close()
 
     return render_template("report_day.html", day_str=day_str, bookings=bookings)
+
+@reservations_bp.route("/reservations/export_day")
+@login_required
+def export_day():
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+
+    day_str = request.args.get("day", date.today().isoformat())
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""SELECT b.*, st.name AS st_name, dc.name AS doctor_name, r.name AS room_name
+                 FROM calendar_bookings b
+                 JOIN session_types st ON st.id=b.session_type_id
+                 LEFT JOIN rooms r ON r.id=b.room_id
+                 LEFT JOIN doctors dc ON dc.id=b.doctor_id
+                 WHERE b.day=? AND b.status != 'canceled'
+                 ORDER BY b.start_time""", (day_str,))
+    bookings = cur.fetchall()
+    conn.close()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"مواعيد {day_str}"
+    ws.sheet_view.rightToLeft = True
+
+    # Title Banner
+    title_font = Font(name="Segoe UI", size=15, bold=True, color="1E293B")
+    sub_font = Font(name="Segoe UI", size=11, bold=True, color="475569")
+    
+    ws.merge_cells("A1:J1")
+    ws["A1"] = "عيادة الدكتورة بسمة رياض - كشف المواعيد والحجوزات اليومية"
+    ws["A1"].font = title_font
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+
+    ws.merge_cells("A2:J2")
+    ws["A2"] = f"التاريخ: {day_str}  |  إجمالي الحجوزات المسجلة: {len(bookings)}"
+    ws["A2"].font = sub_font
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 20
+
+    ws.append([]) # Row 3 empty spacer
+    ws.row_dimensions[3].height = 10
+
+    headers = [
+        "م",
+        "التوقيت",
+        "اسم العميل",
+        "رقم الهاتف",
+        "المنطقة / التفاصيل",
+        "نوع الجلسة",
+        "الغرفة / العيادة",
+        "الطبيب / الأخصائي",
+        "الحالة",
+        "ملاحظات"
+    ]
+    ws.append(headers) # Row 4
+    ws.row_dimensions[4].height = 26
+
+    header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="0D6EFD", end_color="0D6EFD", fill_type="solid")
+    center_align = Alignment(horizontal="center", vertical="center")
+    right_align = Alignment(horizontal="right", vertical="center")
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    for cell in ws[4]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+        cell.border = thin_border
+
+    st_map = {
+        "confirmed": "مؤكد",
+        "canceled": "ملغي",
+        "cancelled": "ملغي",
+        "pending": "قيد الانتظار"
+    }
+
+    alt_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+
+    for idx, b in enumerate(bookings, start=1):
+        status_val = b['status'] or 'pending'
+        status_ar = st_map.get(status_val, status_val)
+        time_slot = f"{b['start_time']} - {b['end_time']}"
+        
+        row_data = [
+            idx,
+            time_slot,
+            b['customer_name'] or '',
+            b['phone'] or '',
+            b['area'] or '',
+            b['st_name'] or '',
+            b['room_name'] or '-',
+            b['doctor_name'] or '-',
+            status_ar,
+            b['notes'] or ''
+        ]
+        ws.append(row_data)
+        current_row = ws.max_row
+        ws.row_dimensions[current_row].height = 22
+        
+        for col_idx, cell in enumerate(ws[current_row], start=1):
+            cell.border = thin_border
+            if idx % 2 == 0:
+                cell.fill = alt_fill
+            if col_idx in (1, 2, 4, 7, 8, 9):
+                cell.alignment = center_align
+            else:
+                cell.alignment = right_align
+
+    from openpyxl.utils import get_column_letter
+
+    for col_idx, col in enumerate(ws.columns, start=1):
+        col_letter = get_column_letter(col_idx)
+        max_length = 0
+        for cell in col:
+            if cell.row in (1, 2, 3):
+                continue
+            val_str = str(cell.value or '')
+            if len(val_str) > max_length:
+                max_length = len(val_str)
+        ws.column_dimensions[col_letter].width = max(max_length + 4, 12)
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"كشف_مواعيد_{day_str}.xlsx"
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename
+    )
+

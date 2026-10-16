@@ -1,12 +1,15 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 no-print">
   <div>
     <h3 class="fw-bold text-white mb-1"><i class="bi bi-printer text-info me-2"></i>كشف وحجوزات اليوم: {{ day_str }}</h3>
-    <p class="text-secondary fs-6 mb-0">طباعة أو استعراض جميع مواعيد الحجز المسجلة باليوم</p>
+    <p class="text-secondary fs-6 mb-0">طباعة أو تصدير إكسل لجميع مواعيد الحجز المسجلة باليوم</p>
   </div>
   <div class="d-flex gap-2">
-    <button onclick="window.print()" class="btn btn-info text-dark px-4 fw-bold">
+    <a href="{{ url_for('reservations.export_day', day=day_str) }}" class="btn btn-success px-4 fw-bold shadow-sm">
+      <i class="bi bi-file-earmark-excel-fill me-1"></i> تصدير لإكسيل
+    </a>
+    <button onclick="window.print()" class="btn btn-info text-dark px-4 fw-bold shadow-sm">
       <i class="bi bi-printer-fill me-1"></i> طباعة الكشف
     </button>
     <a href="{{ url_for('reservations.day_view', day_str=day_str) }}" class="btn btn-outline-light px-3">
@@ -15,10 +18,34 @@
   </div>
 </div>
 
+<!-- Date Filter Form -->
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4 no-print" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+  <form method="get" action="{{ url_for('reservations.report_day') }}" class="row g-2 align-items-center">
+    <div class="col-auto">
+      <label class="form-label text-white fw-bold mb-0">
+        <i class="bi bi-calendar3 me-1 text-info"></i> اختر التاريخ:
+      </label>
+    </div>
+    <div class="col-auto">
+      <input type="date" name="day" class="form-control bg-dark text-white border-secondary" value="{{ day_str }}" onchange="this.form.submit()" />
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary px-3 fw-semibold">
+        <i class="bi bi-filter me-1"></i> عرض الكشف
+      </button>
+    </div>
+    <div class="col-auto ms-auto">
+      <a href="{{ url_for('reservations.export_day', day=day_str) }}" class="btn btn-outline-success px-3 fw-bold">
+        <i class="bi bi-file-earmark-excel me-1"></i> تحميل إكسل ({{ day_str }})
+      </a>
+    </div>
+  </form>
+</div>
+
 <div class="card border-0 shadow-lg rounded-4 p-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
   <div class="text-center mb-4 pb-3 border-bottom border-secondary">
     <h3 class="fw-bold text-white mb-1">كشف حركات المواعيد والحجوزات اليومية</h3>
-    <div class="text-info fs-6 fw-bold">تاريخ: {{ day_str }}</div>
+    <div class="text-info fs-6 fw-bold">تاريخ: {{ day_str }} (إجمالي الحجوزات: {{ bookings|length }})</div>
   </div>
 
   <div class="table-responsive">
@@ -33,6 +60,7 @@
           <th>نوع الجلسة</th>
           <th>الغرفة</th>
           <th>الطبيب / الأخصائي</th>
+          <th>الحالة</th>
           <th>ملاحظات</th>
         </tr>
       </thead>
@@ -48,12 +76,21 @@
           <td>{{ b['st_name'] }}</td>
           <td>{{ b['room_name'] or '-' }}</td>
           <td>{{ b['doctor_name'] or '-' }}</td>
+          <td>
+            {% if b['status'] == 'confirmed' %}
+            <span class="badge bg-success">مؤكد</span>
+            {% elif b['status'] == 'canceled' or b['status'] == 'cancelled' %}
+            <span class="badge bg-danger">ملغي</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">قيد الانتظار</span>
+            {% endif %}
+          </td>
           <td>{{ b['notes'] or '-' }}</td>
         </tr>
         {% endfor %}
         {% else %}
         <tr>
-          <td colspan="9" class="text-center py-4 text-muted">لا توجد مواعيد مسجلة في هذا اليوم حتى الآن</td>
+          <td colspan="10" class="text-center py-4 text-muted">لا توجد مواعيد مسجلة في هذا اليوم حتى الآن</td>
         </tr>
         {% endif %}
       </tbody>
