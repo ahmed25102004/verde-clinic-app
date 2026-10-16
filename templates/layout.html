@@ -48,6 +48,10 @@
                     <i class="bi bi-search"></i>
                     <span>البحث في الحجوزات</span>
                   </a>
+                  <a href="{{ url_for('reservations.customers_tomorrow') }}" class="sidebar-link {% if '/tomorrow' in request.path or '/customers_tomorrow' in request.path %}active{% endif %}">
+                    <i class="bi bi-calendar2-day text-info"></i>
+                    <span>عملاء بكرة</span>
+                  </a>
                   <a href="{{ url_for('reservations.doctors') }}" class="sidebar-link {% if '/reservations/doctors' in request.path %}active{% endif %}">
                     <i class="bi bi-person-badge"></i>
                     <span>الأطباء والأخصائيين</span>

@@ -1,0 +1,315 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container-fluid py-2">
+  <!-- Top Navigation & Action Bar -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 no-print">
+    <div>
+      <h3 class="fw-bold text-white mb-1">
+        <i class="bi bi-calendar2-day text-info me-2"></i>عملاء بكرة
+        <span class="badge bg-info text-dark fs-6 ms-2 px-3 py-1.5 align-middle shadow-sm">
+          {{ day_name }} {{ tomorrow }}
+        </span>
+      </h3>
+      <p class="text-secondary fs-6 mb-0">كشف مواعيد وحجوزات العملاء ليوم الغد للتأكيد والتواصل والتجهيز</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{{ url_for('reservations.export_day', day=tomorrow) }}" class="btn btn-success px-3 fw-bold shadow-sm" title="تصدير حجوزات الغد إلى إكسيل">
+        <i class="bi bi-file-earmark-excel-fill me-1"></i> تصدير لإكسيل
+      </a>
+      <button onclick="window.print()" class="btn btn-outline-info px-3 fw-semibold shadow-sm" title="طباعة كشف الغد">
+        <i class="bi bi-printer me-1"></i> طباعة الكشف
+      </button>
+      <a href="{{ url_for('reservations.day_view', day_str=tomorrow) }}" class="btn btn-outline-light px-3" title="الانتقال إلى جدول مواعيد الغد في التقويم">
+        <i class="bi bi-calendar3 me-1"></i> جدول الغد بالتقويم
+      </a>
+      <a href="{{ url_for('reservations.calendar') }}" class="btn btn-outline-secondary px-3">
+        <i class="bi bi-arrow-right me-1"></i> التقويم الكامل
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter by Room & Date Card -->
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 no-print" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <form method="get" action="{{ url_for('reservations.customers_tomorrow') }}" class="row g-3 align-items-end">
+      <div class="col-md-4 col-lg-3">
+        <label class="form-label text-secondary fw-semibold small mb-1">
+          <i class="bi bi-door-closed text-info me-1"></i>تصفية حسب الغرفة
+        </label>
+        <select name="room_id" class="form-select bg-dark text-white border-secondary">
+          <option value="">جميع الغرف</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {{ 'selected' if room_id == r.id else '' }}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3 col-lg-2">
+        <label class="form-label text-secondary fw-semibold small mb-1">
+          <i class="bi bi-calendar-event text-warning me-1"></i>تغيير اليوم
+        </label>
+        <input type="date" name="day" class="form-control bg-dark text-white border-secondary" value="{{ tomorrow }}" />
+      </div>
+
+      <div class="col-md-2 col-lg-2">
+        <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+          <i class="bi bi-filter me-1"></i> تصفية
+        </button>
+      </div>
+
+      {% if room_id or tomorrow != (date_today_tomorrow or tomorrow) %}
+      <div class="col-md-2 col-lg-2">
+        <a href="{{ url_for('reservations.customers_tomorrow') }}" class="btn btn-outline-secondary w-100">
+          <i class="bi bi-x-circle me-1"></i> إلغاء الفلتر
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Statistics Summary Banner -->
+  <div class="alert alert-dark border border-secondary border-opacity-50 rounded-4 d-flex flex-wrap align-items-center justify-content-between mb-4 py-2 px-3 gap-2">
+    <div class="d-flex align-items-center gap-2 small">
+      <i class="bi bi-info-circle-fill text-info fs-5"></i>
+      <span>
+        إجمالي حجوزات الغد ({{ day_name }} {{ tomorrow }}):
+        <strong class="text-warning fs-6">{{ customers|length }}</strong> موعد
+      </span>
+      {% if room_id %}
+      <span class="badge bg-secondary ms-2">مفلترة لغرفة محددة</span>
+      {% endif %}
+    </div>
+
+    <div class="d-flex align-items-center gap-2 small">
+      {% set confirmed_cnt = customers | selectattr('status', 'equalto', 'confirmed') | list | length %}
+      {% set canceled_cnt = customers | selectattr('status', 'in', ['canceled', 'cancelled']) | list | length %}
+      {% set pending_cnt = (customers|length) - confirmed_cnt - canceled_cnt %}
+      <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2.5 py-1">مؤكد: {{ confirmed_cnt }}</span>
+      <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 px-2.5 py-1">قيد الانتظار: {{ pending_cnt }}</span>
+      {% if canceled_cnt > 0 %}
+      <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-2.5 py-1">ملغي: {{ canceled_cnt }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Customers Tomorrow Table Card -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4" style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color) !important;">
+    <div class="card-header bg-dark text-white py-3 px-4 border-bottom border-secondary d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">
+        <i class="bi bi-people-fill text-info me-2"></i>سجل عملاء ومواعيد الغد ({{ customers|length }})
+      </h5>
+      <span class="badge bg-secondary">{{ day_name }} {{ tomorrow }}</span>
+    </div>
+
+    <div class="card-body p-0">
+      {% if customers|length == 0 %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-calendar-x fs-1 d-block mb-3 text-secondary"></i>
+        <h5 class="text-white fw-bold mb-2">لا توجد حجوزات مسجلة ليوم الغد ({{ day_name }} {{ tomorrow }})</h5>
+        <p class="text-secondary small mb-4">لم يتم حجز أي موعد حتى الآن لعملاء الغد في هذه العيادة.</p>
+        <a href="{{ url_for('reservations.day_view', day_str=tomorrow) }}" class="btn btn-primary px-4 fw-bold shadow-sm">
+          <i class="bi bi-calendar-plus me-1"></i> فتح جدول الغد وإضافة موعد جديد
+        </a>
+      </div>
+      {% else %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 text-center">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th class="py-3">#</th>
+              <th class="py-3 text-start ps-4">اسم العميل</th>
+              <th class="py-3">رقم الهاتف</th>
+              <th class="py-3">نوع الجلسة</th>
+              <th class="py-3">الغرفة</th>
+              <th class="py-3">الدكتور / الأخصائي</th>
+              <th class="py-3">التوقيت</th>
+              <th class="py-3">الحالة</th>
+              <th class="py-3">الملاحظات</th>
+              <th class="py-3 no-print">التواصل والإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in customers %}
+            <tr>
+              <td class="fw-bold text-muted">{{ loop.index }}</td>
+              <td class="fw-bold text-white text-start ps-4 fs-6">
+                <i class="bi bi-person-circle text-info me-1"></i> {{ r.customer_name }}
+              </td>
+              <td class="text-info fw-semibold">{{ r.phone or '—' }}</td>
+              <td>
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                  {{ r.st_name }}
+                </span>
+              </td>
+              <td>
+                {% if r.room_name %}
+                <span class="badge bg-dark border border-secondary text-light px-2 py-1">
+                  <i class="bi bi-door-closed me-1"></i>{{ r.room_name }}
+                </span>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if r.doctor_name %}
+                <span class="text-light fw-semibold">
+                  <i class="bi bi-person-badge text-warning me-1"></i>{{ r.doctor_name }}
+                </span>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="fw-bold text-info">
+                {{ r.start_time }} - {{ r.end_time }}
+              </td>
+              <td>
+                {% if r.status == 'confirmed' %}
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1">مؤكد</span>
+                {% elif r.status in ['cancelled', 'canceled'] %}
+                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-2 py-1">ملغي</span>
+                {% else %}
+                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 px-2 py-1">قيد الانتظار</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted text-truncate" style="max-width: 160px;" title="{{ r.notes or '' }}">
+                {{ r.notes or '—' }}
+              </td>
+              <td class="no-print">
+                <div class="d-flex justify-content-center align-items-center gap-1">
+                  <!-- Quick Status Controls -->
+                  {% if r.status != 'confirmed' %}
+                  <form method="post" action="{{ url_for('reservations.update_status', b_id=r.id) }}" class="d-inline">
+                    <input type="hidden" name="status" value="confirmed" />
+                    <input type="hidden" name="next" value="{{ request.full_path }}" />
+                    <button type="submit" class="btn btn-sm btn-outline-success p-1 px-2" title="تأكيد الحجز فوراً">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </form>
+                  {% endif %}
+                  {% if r.status not in ['cancelled', 'canceled'] %}
+                  <form method="post" action="{{ url_for('reservations.update_status', b_id=r.id) }}" class="d-inline">
+                    <input type="hidden" name="status" value="canceled" />
+                    <input type="hidden" name="next" value="{{ request.full_path }}" />
+                    <button type="submit" class="btn btn-sm btn-outline-warning p-1 px-2" title="إلغاء الموعد">
+                      <i class="bi bi-x-circle"></i>
+                    </button>
+                  </form>
+                  {% endif %}
+
+                  <!-- WhatsApp & SMS Communication -->
+                  {% if r.phone %}
+                  <a
+                    class="btn btn-sm btn-outline-success p-1 px-2"
+                    href="{{ url_for('reservations.booking_whatsapp', id=r.id) }}"
+                    target="_blank"
+                    title="واتساب مباشر"
+                  >
+                    <i class="bi bi-whatsapp"></i>
+                  </a>
+                  <a
+                    class="btn btn-sm btn-outline-primary p-1 px-2"
+                    href="{{ url_for('reservations.booking_sms', id=r.id) }}"
+                    title="رسالة SMS"
+                  >
+                    <i class="bi bi-chat-dots"></i>
+                  </a>
+
+                  <!-- Templates Dropdown -->
+                  <div class="btn-group">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary dropdown-toggle p-1 px-2"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                      title="قوالب الرسائل الجاهزة"
+                    >
+                      <i class="bi bi-three-dots"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end text-end shadow-lg">
+                      <li>
+                        <a
+                          class="dropdown-item small text-success"
+                          href="{{ url_for('reservations.booking_whatsapp', id=r.id) }}?tpl=confirm"
+                          target="_blank"
+                        >
+                          <i class="bi bi-whatsapp me-1"></i> واتساب: تأكيد الموعد
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="dropdown-item small text-info"
+                          href="{{ url_for('reservations.booking_whatsapp', id=r.id) }}?tpl=reminder"
+                          target="_blank"
+                        >
+                          <i class="bi bi-whatsapp me-1"></i> واتساب: تذكير بالموعد
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="dropdown-item small text-warning"
+                          href="{{ url_for('reservations.booking_whatsapp', id=r.id) }}?tpl=prep"
+                          target="_blank"
+                        >
+                          <i class="bi bi-whatsapp me-1"></i> واتساب: تعليمات قبل الجلسة
+                        </a>
+                      </li>
+                      <li><hr class="dropdown-divider border-secondary" /></li>
+                      <li>
+                        <a
+                          class="dropdown-item small"
+                          href="{{ url_for('reservations.booking_sms', id=r.id) }}?tpl=confirm"
+                        >
+                          <i class="bi bi-chat-dots me-1"></i> رسالة: تأكيد
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="dropdown-item small"
+                          href="{{ url_for('reservations.booking_sms', id=r.id) }}?tpl=reminder"
+                        >
+                          <i class="bi bi-chat-dots me-1"></i> رسالة: تذكير
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="dropdown-item small"
+                          href="{{ url_for('reservations.booking_sms', id=r.id) }}?tpl=prep"
+                        >
+                          <i class="bi bi-chat-dots me-1"></i> رسالة: تعليمات
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                  {% else %}
+                  <button class="btn btn-sm btn-outline-secondary p-1 px-2" disabled title="لا يوجد رقم هاتف">
+                    <i class="bi bi-whatsapp"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary p-1 px-2" disabled title="لا يوجد رقم هاتف">
+                    <i class="bi bi-chat-dots"></i>
+                  </button>
+                  {% endif %}
+
+                  <!-- Open Day in Calendar -->
+                  <a href="{{ url_for('reservations.day_view', day_str=r.day) }}" class="btn btn-sm btn-outline-light p-1 px-2" title="عرض في جدول اليوم">
+                    <i class="bi bi-arrow-up-right-square"></i>
+                  </a>
+
+                  <!-- Delete Booking (Admin / Manager or Staff) -->
+                  <form method="post" action="{{ url_for('reservations.delete_booking', b_id=r.id) }}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الموعد نهائياً؟');">
+                    <input type="hidden" name="next" value="{{ request.full_path }}" />
+                    <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="حذف الموعد">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

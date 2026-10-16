@@ -454,7 +454,7 @@ def update_status(b_id):
     day_str = row["day"] if row else date.today().isoformat()
     conn.close()
     flash("تم تحديث حالة الحجز بنجاح", "success")
-    next_url = request.form.get("next") or (request.referrer if request.referrer and 'search' in request.referrer else None)
+    next_url = request.form.get("next") or (request.referrer if request.referrer and ('search' in request.referrer or 'tomorrow' in request.referrer or 'customers' in request.referrer) else None)
     if next_url:
         return redirect(next_url)
     return redirect(url_for("reservations.day_view", day_str=day_str))
@@ -472,7 +472,7 @@ def delete_booking(b_id):
     conn.commit()
     conn.close()
     flash("تم حذف الحجز بنجاح", "success")
-    next_url = request.form.get("next") or (request.referrer if request.referrer and 'search' in request.referrer else None)
+    next_url = request.form.get("next") or (request.referrer if request.referrer and ('search' in request.referrer or 'tomorrow' in request.referrer or 'customers' in request.referrer) else None)
     if next_url:
         return redirect(next_url)
     return redirect(url_for("reservations.day_view", day_str=day_str))
@@ -984,10 +984,143 @@ def reservations_customers():
                    ORDER BY latest_id DESC
                    LIMIT 10"""
         cur.execute(query)
-
     rows = cur.fetchall()
     conn.close()
     return render_template("reservations_customers.html", rows=rows, q=q, total_count=total_count)
+
+# -------------------------------------------------------------
+# عملاء بكرة (Tomorrow's Bookings) & Message Helpers
+# -------------------------------------------------------------
+@reservations_bp.route("/customers_tomorrow")
+@reservations_bp.route("/customers/tomorrow")
+@reservations_bp.route("/reservations/customers/tomorrow")
+@reservations_bp.route("/reservations/tomorrow")
+@login_required
+def customers_tomorrow():
+    tomorrow = request.args.get("day") or (date.today() + timedelta(days=1)).isoformat()
+    try:
+        dt = datetime.strptime(tomorrow, "%Y-%m-%d").date()
+    except Exception:
+        dt = date.today() + timedelta(days=1)
+        tomorrow = dt.isoformat()
+
+    arabic_days = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
+    day_name = arabic_days[dt.weekday()]
+
+    room_id = request.args.get("room_id", type=int)
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, name FROM rooms ORDER BY name")
+    rooms = cur.fetchall()
+
+    query = """SELECT b.id,
+                      b.customer_name,
+                      COALESCE(b.phone,'') AS phone,
+                      COALESCE(b.area,'') AS area,
+                      b.start_time,
+                      b.end_time,
+                      COALESCE(b.notes,'') AS notes,
+                      b.day,
+                      b.status,
+                      st.name AS st_name,
+                      COALESCE(dc.name,'') AS doctor_name,
+                      COALESCE(r.name,'') AS room_name
+               FROM calendar_bookings b
+               JOIN session_types st ON st.id=b.session_type_id
+               LEFT JOIN doctors dc ON dc.id=b.doctor_id
+               LEFT JOIN rooms r ON r.id=b.room_id
+               WHERE b.day=?"""
+    params = [tomorrow]
+
+    if room_id:
+        query += " AND b.room_id=?"
+        params.append(room_id)
+
+    query += " ORDER BY b.start_time"
+
+    cur.execute(query, tuple(params))
+    rows = cur.fetchall()
+    conn.close()
+
+    return render_template(
+        "reservations_tomorrow.html",
+        customers=rows,
+        tomorrow=tomorrow,
+        day_name=day_name,
+        rooms=rooms,
+        room_id=room_id
+    )
+
+
+@reservations_bp.route("/booking/whatsapp/<int:id>")
+@reservations_bp.route("/reservations/booking/whatsapp/<int:id>")
+@login_required
+def booking_whatsapp(id):
+    from urllib.parse import quote
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""SELECT b.customer_name, b.phone, b.day, b.start_time, b.end_time, st.name AS st_name
+                   FROM calendar_bookings b
+                   JOIN session_types st ON st.id = b.session_type_id
+                   WHERE b.id = ?""", (id,))
+    b = cur.fetchone()
+    conn.close()
+    if not b or not b["phone"]:
+        flash("لا يوجد رقم هاتف مسجل لهذا الحجز", "warning")
+        return redirect(request.referrer or url_for("reservations.customers_tomorrow"))
+
+    tpl = (request.args.get("tpl") or "confirm").strip().lower()
+    st_name = b["st_name"] or "جلسة"
+    c_name = b["customer_name"] or ""
+
+    if tpl == "reminder":
+        msg = f"تذكير بموعدك: {st_name} يوم {b['day']} الساعة {b['start_time']}. نرجو الحضور قبل 10 دقائق."
+    elif tpl == "prep":
+        msg = f"تعليمات قبل الجلسة: يرجى الحضور في الموعد المحدد {b['day']} {b['start_time']}، بدون عطر أو كريمات على المنطقة المعالجة، وشرب الماء جيداً."
+    else:
+        msg = f"تأكيد حجز: {st_name} يوم {b['day']} من {b['start_time']} إلى {b['end_time']}. الاسم: {c_name}."
+
+    phone = "".join(ch for ch in str(b["phone"]) if ch.isdigit() or ch == "+").replace("+", "")
+    if phone.startswith("01") and len(phone) == 11:
+        phone = "2" + phone
+    elif phone.startswith("1") and len(phone) == 10:
+        phone = "20" + phone
+
+    return redirect(f"https://wa.me/{phone}?text={quote(msg)}")
+
+
+@reservations_bp.route("/booking/sms/<int:id>")
+@reservations_bp.route("/reservations/booking/sms/<int:id>")
+@login_required
+def booking_sms(id):
+    from urllib.parse import quote
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""SELECT b.customer_name, b.phone, b.day, b.start_time, b.end_time, st.name AS st_name
+                   FROM calendar_bookings b
+                   JOIN session_types st ON st.id = b.session_type_id
+                   WHERE b.id = ?""", (id,))
+    b = cur.fetchone()
+    conn.close()
+    if not b or not b["phone"]:
+        flash("لا يوجد رقم هاتف مسجل لهذا الحجز", "warning")
+        return redirect(request.referrer or url_for("reservations.customers_tomorrow"))
+
+    tpl = (request.args.get("tpl") or "confirm").strip().lower()
+    st_name = b["st_name"] or "جلسة"
+
+    if tpl == "reminder":
+        msg = f"تذكير بموعدك: {st_name} يوم {b['day']} الساعة {b['start_time']}. نرجو الحضور قبل 10 دقائق."
+    elif tpl == "prep":
+        msg = f"تعليمات قبل الجلسة: يرجى الحضور في الموعد المحدد {b['day']} {b['start_time']}، بدون عطر أو كريمات على المنطقة المعالجة."
+    else:
+        msg = f"تأكيد حجز: {st_name} يوم {b['day']} من {b['start_time']} إلى {b['end_time']}."
+
+    phone = "".join(ch for ch in str(b["phone"]) if ch.isdigit() or ch == "+").replace("+", "")
+    return redirect(f"sms:{phone}?body={quote(msg)}")
+
 
 
 

@@ -234,6 +234,13 @@ if 'backup.backup_upload' in app.view_functions:
     app.add_url_rule('/backups/upload', 'backup_upload', view_func=app.view_functions['backup.backup_upload'], methods=['POST'])
 if 'whatsapp.read_all_notifications' in app.view_functions:
     app.add_url_rule('/notifications/read_all', 'read_all_notifications', view_func=app.view_functions['whatsapp.read_all_notifications'])
+if 'reservations.customers_tomorrow' in app.view_functions:
+    app.add_url_rule('/customers_tomorrow', 'customers_tomorrow', view_func=app.view_functions['reservations.customers_tomorrow'])
+    app.add_url_rule('/customers/tomorrow', 'customers_tomorrow_alias', view_func=app.view_functions['reservations.customers_tomorrow'])
+if 'reservations.booking_whatsapp' in app.view_functions:
+    app.add_url_rule('/booking/whatsapp/<int:id>', 'booking_whatsapp', view_func=app.view_functions['reservations.booking_whatsapp'])
+if 'reservations.booking_sms' in app.view_functions:
+    app.add_url_rule('/booking/sms/<int:id>', 'booking_sms', view_func=app.view_functions['reservations.booking_sms'])
 
 
 @app.route("/")
