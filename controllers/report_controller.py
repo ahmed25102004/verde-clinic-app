@@ -359,25 +359,67 @@ def packages_admin():
     error = None
     if request.method == "POST":
         category = request.form.get("category")
-        name = request.form.get("name")
+        name = (request.form.get("name") or "").strip()
         sessions_count = request.form.get("sessions_count")
         price = request.form.get("price")
-        bonus = request.form.get("bonus")
+        bonus = (request.form.get("bonus") or "").strip()
         allowed = {"cosmetic_sessions", "cosmetic_packages", "laser_sessions", "laser_packages", "pulse_packages"}
         try:
             sc = int(sessions_count or 0)
             pr = int(price or 0)
-            if category not in allowed or not name or sc <= 0 or pr <= 0:
+            if category not in allowed or not name or sc <= 0 or pr < 0:
                 error = "بيانات غير صحيحة"
             else:
-                cur.execute("INSERT INTO packages(category,name,sessions_count,price,bonus) VALUES(?,?,?,?,?)", (category, name, sc, pr, bonus))
+                cur.execute("INSERT INTO packages(category,name,sessions_count,price,bonus) VALUES(?,?,?,?,?)", (category, name, sc, pr, bonus or None))
                 conn.commit()
+                flash(f"تمت إضافة الخدمة / الباكدج '{name}' بنجاح", "success")
+                conn.close()
+                return redirect(url_for("report.packages_admin"))
         except ValueError:
             error = "القيم الرقمية غير صحيحة"
-    cur.execute("SELECT id,category,name,sessions_count,price FROM packages WHERE (is_active = 1 OR is_active IS NULL) ORDER BY id DESC")
+    cur.execute("SELECT id,category,name,sessions_count,price,bonus FROM packages WHERE (is_active = 1 OR is_active IS NULL) ORDER BY id DESC")
     rows = cur.fetchall()
     conn.close()
     return render_template("packages.html", rows=rows, error=error)
+
+@report_bp.route("/packages/edit", methods=["GET", "POST"])
+@manager_required
+def packages_edit():
+    if request.method == "GET":
+        return redirect(url_for("report.packages_admin"))
+
+    pid = request.form.get("id")
+    category = request.form.get("category")
+    name = (request.form.get("name") or "").strip()
+    sessions_count = request.form.get("sessions_count")
+    price = request.form.get("price")
+    bonus = (request.form.get("bonus") or "").strip()
+    allowed = {"cosmetic_sessions", "cosmetic_packages", "laser_sessions", "laser_packages", "pulse_packages"}
+
+    try:
+        p = int(pid)
+        sc = int(sessions_count or 0)
+        pr = int(price or 0)
+        if category not in allowed or not name or sc <= 0 or pr < 0:
+            flash("بيانات غير صحيحة، يرجى ملء الحقول المطلوبة بشكل صحيح", "danger")
+        else:
+            conn = get_conn()
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE packages 
+                SET category = ?, name = ?, sessions_count = ?, price = ?, bonus = ?
+                WHERE id = ?
+            """, (category, name, sc, pr, bonus or None, p))
+            conn.commit()
+            conn.close()
+            flash(f"تم تعديل الباكدج '{name}' بنجاح", "success")
+            return redirect(url_for("report.packages_admin"))
+    except (TypeError, ValueError):
+        flash("القيم الرقمية غير صحيحة", "danger")
+    except Exception as e:
+        flash(f"حدث خطأ أثناء تعديل الباكدج: {str(e)}", "danger")
+
+    return redirect(url_for("report.packages_admin"))
 
 @report_bp.route("/packages/delete", methods=["GET", "POST"])
 @manager_required
@@ -403,7 +445,7 @@ def packages_delete():
         
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT id,category,name,sessions_count,price FROM packages WHERE (is_active = 1 OR is_active IS NULL) ORDER BY id DESC")
+    cur.execute("SELECT id,category,name,sessions_count,price,bonus FROM packages WHERE (is_active = 1 OR is_active IS NULL) ORDER BY id DESC")
     rows = cur.fetchall()
     conn.close()
     return render_template("packages.html", rows=rows, error=error)

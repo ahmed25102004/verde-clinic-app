@@ -222,6 +222,10 @@ if 'report.dashboard' in app.view_functions:
     app.add_url_rule('/dashboard', 'dashboard', view_func=app.view_functions['report.dashboard'])
 if 'report.packages_admin' in app.view_functions:
     app.add_url_rule('/packages', 'packages_admin', view_func=app.view_functions['report.packages_admin'], methods=['GET', 'POST'])
+if 'report.packages_edit' in app.view_functions:
+    app.add_url_rule('/packages/edit', 'packages_edit', view_func=app.view_functions['report.packages_edit'], methods=['GET', 'POST'])
+if 'report.packages_delete' in app.view_functions:
+    app.add_url_rule('/packages/delete', 'packages_delete', view_func=app.view_functions['report.packages_delete'], methods=['GET', 'POST'])
 if 'expense.expenses' in app.view_functions:
     app.add_url_rule('/expenses', 'expenses', view_func=app.view_functions['expense.expenses'])
 if 'backup.backups_list' in app.view_functions:
