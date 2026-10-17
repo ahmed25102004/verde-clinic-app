@@ -119,35 +119,55 @@ def get_client_ip():
         return request.headers.get("X-Real-IP").strip()
     return request.remote_addr or "unknown"
 
+def normalize_input(text):
+    if not text:
+        return ""
+    text = str(text).strip()
+    arabic_digits = "٠١٢٣٤٥٦٧٨٩"
+    english_digits = "0123456789"
+    for a, e in zip(arabic_digits, english_digits):
+        text = text.replace(a, e)
+    return text.strip()
+
 @employee_bp.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
-        id_str = request.form.get("id")
-        pwd = request.form.get("password")
-        next_url = request.args.get("next") or url_for("index")
-        try:
-            emp_id = int(id_str)
-        except (TypeError, ValueError):
-            error = "ID غير صالح"
+        id_str = normalize_input(request.form.get("id"))
+        pwd = (request.form.get("password") or "").strip()
+        next_url = request.form.get("next") or request.args.get("next") or url_for("index")
+
+        if not id_str:
+            error = "يرجى إدخال ID الموظف"
         else:
             try:
                 ip = get_client_ip()
                 conn = get_conn()
                 cur = conn.cursor()
 
-                # 1. First verify employee credentials
-                cur.execute("SELECT id, name, password_hash, role FROM employees WHERE id=?", (emp_id,))
-                row = cur.fetchone()
-                is_valid = bool(row and row[2] and check_password_hash(row[2], pwd or ""))
+                # Search by ID or Name/Role
+                row = None
+                if id_str.isdigit():
+                    cur.execute("SELECT id, name, password_hash, role FROM employees WHERE id = ?", (int(id_str),))
+                    row = cur.fetchone()
+                if not row:
+                    cur.execute("SELECT id, name, password_hash, role FROM employees WHERE LOWER(name) = LOWER(?) OR id = ?", (id_str, id_str))
+                    row = cur.fetchone()
+
+                is_valid = bool(row and row[2] and check_password_hash(row[2], pwd))
 
                 if is_valid:
+                    try:
+                        print(f"[AUTH SUCCESS] Logged in: ID={row[0]}, Name='{row[1]}', IP='{ip}'", flush=True)
+                    except Exception:
+                        pass
                     # Successful login! Immediately delete any failed attempts for this IP
                     try:
-                        cur.execute("DELETE FROM auth_failures WHERE ip=?", (ip,))
+                        cur.execute("DELETE FROM auth_failures WHERE ip = ?", (ip,))
                     except Exception:
                         pass
 
+                    session.permanent = True
                     session["employee_id"] = row[0]
                     session["employee_name"] = row[1]
                     session["employee_role"] = row[3] or "employee"
@@ -164,7 +184,7 @@ def login():
                     conn.close()
                     return redirect(next_url)
                 else:
-                    # 2. Invalid credentials: check failed attempts rate limit
+                    # Invalid credentials: check failed attempts rate limit
                     cur.execute("SELECT attempts, last_attempt FROM auth_failures WHERE ip=?", (ip,))
                     af = cur.fetchone()
 
@@ -187,10 +207,18 @@ def login():
                     elapsed = (datetime.now() - last).total_seconds()
                     if attempts >= MAX_ATTEMPTS and elapsed < COOLDOWN_SECONDS:
                         remaining = int(COOLDOWN_SECONDS - elapsed)
+                        try:
+                            print(f"[AUTH BLOCKED] IP='{ip}' is rate-limited: {remaining}s remaining", flush=True)
+                        except Exception:
+                            pass
                         error = f"محظور مؤقتاً بسبب تكرار المحاولات الخاطئة. يرجى الانتظار {remaining} ثانية والمحاولة مجدداً."
                     else:
                         new_attempts = attempts + 1
                         now_s = datetime.now().isoformat()
+                        try:
+                            print(f"[AUTH FAILED] Failed login attempt: Input='{id_str}', IP='{ip}', Attempts={new_attempts}", flush=True)
+                        except Exception:
+                            pass
                         try:
                             cur.execute(
                                 "INSERT INTO auth_failures(ip, attempts, last_attempt) VALUES(?,?,?)",
@@ -206,9 +234,10 @@ def login():
                                 pass
 
                         try:
+                            emp_record_id = row[0] if row else 0
                             cur.execute(
                                 "INSERT INTO auth_logs(employee_id, ip, action, success, timestamp) VALUES(?,?,?,?,?)",
-                                (emp_id, ip, "login", 0, datetime.now().isoformat())
+                                (emp_record_id, ip, "login", 0, datetime.now().isoformat())
                             )
                         except Exception:
                             pass
@@ -221,7 +250,10 @@ def login():
                 conn.commit()
                 conn.close()
             except Exception as e:
-                print(f"Login error: {e}")
+                try:
+                    print(f"Login error: {e}")
+                except Exception:
+                    pass
                 error = "بيانات تسجيل الدخول غير صحيحة أو هناك خطأ في النظام"
     return render_template("login.html", error=error)
 

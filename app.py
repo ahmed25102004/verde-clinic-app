@@ -42,7 +42,8 @@ app.secret_key = secret_key
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE=os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax'),
-    SESSION_COOKIE_SECURE=(os.environ.get('USE_HTTPS', '0') == '1')
+    SESSION_COOKIE_SECURE=(os.environ.get('USE_HTTPS', '0') == '1'),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30)
 )
 
 

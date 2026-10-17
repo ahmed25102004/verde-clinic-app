@@ -258,19 +258,22 @@
       {% endif %}
 
       <form method="post" action="{{ url_for('employee.login') }}">
+        <input type="hidden" name="next" value="{{ request.args.get('next', '') }}" />
         <div class="mb-3">
           <label class="form-label">ID الموظف / المعرف</label>
           <div class="input-icon-wrapper">
             <i class="bi bi-person-vcard"></i>
-            <input type="number" class="form-control" name="id" placeholder="أدخل رقم ID الخاص بك" required autocomplete="username" autofocus>
+            <input type="text" inputmode="numeric" class="form-control" name="id" placeholder="أدخل رقم ID الخاص بك (مثال: 1)" required autocomplete="username" autofocus>
           </div>
         </div>
 
         <div class="mb-4">
           <label class="form-label">كلمة المرور</label>
-          <div class="input-icon-wrapper">
-            <i class="bi bi-lock"></i>
-            <input type="password" class="form-control" name="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password">
+          <div class="input-icon-wrapper position-relative">
+            <input type="password" id="passwordInput" class="form-control" name="password" placeholder="أدخل كلمة المرور" required autocomplete="current-password" style="padding-left: 2.75rem;">
+            <button type="button" id="togglePasswordBtn" class="btn btn-link position-absolute top-50 start-0 translate-middle-y text-secondary text-decoration-none" style="z-index: 5; padding: 0.5rem 0.85rem;" title="إظهار / إخفاء كلمة المرور">
+              <i class="bi bi-eye" id="togglePasswordIcon" style="position: static; font-size: 1.15rem;"></i>
+            </button>
           </div>
         </div>
 
@@ -284,5 +287,21 @@
       </form>
     </div>
   </div>
+
+  <script>
+    document.getElementById('togglePasswordBtn')?.addEventListener('click', function() {
+      const pwdInput = document.getElementById('passwordInput');
+      const icon = document.getElementById('togglePasswordIcon');
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+      } else {
+        pwdInput.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+      }
+    });
+  </script>
 </body>
 </html>
