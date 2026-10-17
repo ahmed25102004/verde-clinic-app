@@ -110,6 +110,15 @@ def employees_delete():
         return redirect(url_for("employee.login"))
     return redirect(url_for("employee.employees"))
 
+def get_client_ip():
+    if request.headers.get("CF-Connecting-IP"):
+        return request.headers.get("CF-Connecting-IP").strip()
+    if request.headers.get("X-Forwarded-For"):
+        return request.headers.get("X-Forwarded-For").split(",")[0].strip()
+    if request.headers.get("X-Real-IP"):
+        return request.headers.get("X-Real-IP").strip()
+    return request.remote_addr or "unknown"
+
 @employee_bp.route("/login", methods=["GET", "POST"])
 def login():
     error = None
@@ -123,52 +132,92 @@ def login():
             error = "ID غير صالح"
         else:
             try:
-                ip = request.remote_addr or 'unknown'
+                ip = get_client_ip()
                 conn = get_conn()
                 cur = conn.cursor()
-                cur.execute('SELECT attempts,last_attempt FROM auth_failures WHERE ip=?', (ip,))
-                af = cur.fetchone()
-                locked = False
-                if af:
+
+                # 1. First verify employee credentials
+                cur.execute("SELECT id, name, password_hash, role FROM employees WHERE id=?", (emp_id,))
+                row = cur.fetchone()
+                is_valid = bool(row and row[2] and check_password_hash(row[2], pwd or ""))
+
+                if is_valid:
+                    # Successful login! Immediately delete any failed attempts for this IP
                     try:
-                        last = datetime.fromisoformat(af[1])
+                        cur.execute("DELETE FROM auth_failures WHERE ip=?", (ip,))
                     except Exception:
-                        last = datetime.now()
-                    if af[0] >= 5 and (datetime.now() - last).total_seconds() < 15 * 60:
-                        locked = True
-                if locked:
-                    error = 'محظور مؤقتًا بعد محاولات فاشلة، حاول بعد قليل'
+                        pass
+
+                    session["employee_id"] = row[0]
+                    session["employee_name"] = row[1]
+                    session["employee_role"] = row[3] or "employee"
+
+                    try:
+                        cur.execute(
+                            "INSERT INTO auth_logs(employee_id, ip, action, success, timestamp) VALUES(?,?,?,?,?)",
+                            (row[0], ip, "login", 1, datetime.now().isoformat())
+                        )
+                        conn.commit()
+                    except Exception:
+                        pass
+
+                    conn.close()
+                    return redirect(next_url)
                 else:
-                    cur.execute("SELECT id,name,password_hash,role FROM employees WHERE id=?", (emp_id,))
-                    row = cur.fetchone()
-                    if not row or not row[2] or not check_password_hash(row[2], pwd or ""):
-                        error = "بيانات تسجيل الدخول غير صحيحة"
+                    # 2. Invalid credentials: check failed attempts rate limit
+                    cur.execute("SELECT attempts, last_attempt FROM auth_failures WHERE ip=?", (ip,))
+                    af = cur.fetchone()
+
+                    COOLDOWN_SECONDS = 60  # 1 minute lockout instead of 15 minutes
+                    MAX_ATTEMPTS = 5
+                    attempts = 0
+                    last = datetime.now()
+
+                    if af:
+                        attempts = af[0] or 0
+                        try:
+                            last = datetime.fromisoformat(af[1])
+                        except Exception:
+                            last = datetime.now()
+
+                        # Reset attempts counter if cooldown period has passed
+                        if (datetime.now() - last).total_seconds() >= COOLDOWN_SECONDS:
+                            attempts = 0
+
+                    elapsed = (datetime.now() - last).total_seconds()
+                    if attempts >= MAX_ATTEMPTS and elapsed < COOLDOWN_SECONDS:
+                        remaining = int(COOLDOWN_SECONDS - elapsed)
+                        error = f"محظور مؤقتاً بسبب تكرار المحاولات الخاطئة. يرجى الانتظار {remaining} ثانية والمحاولة مجدداً."
+                    else:
+                        new_attempts = attempts + 1
                         now_s = datetime.now().isoformat()
                         try:
-                            cur.execute('INSERT INTO auth_failures(ip,attempts,last_attempt) VALUES(?,?,?)', (ip, 1, now_s))
+                            cur.execute(
+                                "INSERT INTO auth_failures(ip, attempts, last_attempt) VALUES(?,?,?)",
+                                (ip, new_attempts, now_s)
+                            )
                         except Exception:
                             try:
-                                cur.execute('UPDATE auth_failures SET attempts=attempts+1,last_attempt=? WHERE ip=?', (now_s, ip))
-                            except Exception: pass
-                        try:
-                            cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', (emp_id, ip, 'login', 0, datetime.now().isoformat()))
-                            conn.commit()
-                        except Exception: pass
-                    else:
-                        try:
-                            cur.execute('DELETE FROM auth_failures WHERE ip=?', (ip,))
-                        except Exception: pass
-                        
-                        session["employee_id"] = row[0]
-                        session["employee_name"] = row[1]
-                        session["employee_role"] = row[3] or "employee"
+                                cur.execute(
+                                    "UPDATE auth_failures SET attempts=?, last_attempt=? WHERE ip=?",
+                                    (new_attempts, now_s, ip)
+                                )
+                            except Exception:
+                                pass
 
                         try:
-                            cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', (row[0], ip, 'login', 1, datetime.now().isoformat()))
-                            conn.commit()
-                        except Exception: pass
-                        conn.close()
-                        return redirect(next_url)
+                            cur.execute(
+                                "INSERT INTO auth_logs(employee_id, ip, action, success, timestamp) VALUES(?,?,?,?,?)",
+                                (emp_id, ip, "login", 0, datetime.now().isoformat())
+                            )
+                        except Exception:
+                            pass
+
+                        if new_attempts >= MAX_ATTEMPTS:
+                            error = f"محظور مؤقتاً بعد 5 محاولات خاطئة. يرجى الانتظار {COOLDOWN_SECONDS} ثانية والمحاولة مجدداً."
+                        else:
+                            error = "بيانات تسجيل الدخول غير صحيحة"
+
                 conn.commit()
                 conn.close()
             except Exception as e:

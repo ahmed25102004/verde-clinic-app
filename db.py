@@ -154,6 +154,10 @@ def init_db():
         last_attempt TEXT
     )
     """)
+    try:
+        cur.execute("DELETE FROM auth_failures")
+    except Exception:
+        pass
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS auth_logs (
