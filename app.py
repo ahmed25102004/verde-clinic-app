@@ -218,6 +218,8 @@ if 'employee.signup' in app.view_functions:
     app.add_url_rule('/signup', 'signup', view_func=app.view_functions['employee.signup'], methods=['GET', 'POST'])
 if 'employee.employees' in app.view_functions:
     app.add_url_rule('/employees', 'employees', view_func=app.view_functions['employee.employees'], methods=['GET', 'POST'])
+if 'employee.employees_change_password' in app.view_functions:
+    app.add_url_rule('/employees/change_password', 'employees_change_password', view_func=app.view_functions['employee.employees_change_password'], methods=['POST'])
 if 'report.dashboard' in app.view_functions:
     app.add_url_rule('/dashboard', 'dashboard', view_func=app.view_functions['report.dashboard'])
 if 'report.packages_admin' in app.view_functions:

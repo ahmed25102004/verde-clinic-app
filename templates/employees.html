@@ -7,6 +7,19 @@
       <h2 class="fw-bold text-white mb-1">إدارة فريق الموظفين والمصرح لهم</h2>
       <p class="text-muted mb-0">إضافة موظفين جدد، إدارة الصلاحيات، وحسابات الدخول للنظام</p>
     </div>
+    {% if session.employee_id %}
+    <div>
+      <button type="button" 
+              class="btn btn-outline-warning fw-bold px-3 py-2 d-flex align-items-center gap-2 shadow-sm"
+              data-bs-toggle="modal" 
+              data-bs-target="#changePasswordModal" 
+              data-id="{{ session.employee_id }}" 
+              data-name="{{ session.employee_name }}"
+              data-is-self="true">
+        <i class="bi bi-key-fill fs-5"></i> تغيير كلمة المرور لحسابي
+      </button>
+    </div>
+    {% endif %}
   </div>
 
   <div class="row g-4">
@@ -99,9 +112,21 @@
                   </div>
                 </div>
 
-                <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                  {% if session.employee_role == 'manager' or session.employee_id == e[0] %}
+                  <button type="button" 
+                          class="btn btn-outline-warning btn-sm text-nowrap" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#changePasswordModal" 
+                          data-id="{{ e[0] }}" 
+                          data-name="{{ e[1] }}"
+                          data-is-self="{{ 'true' if session.employee_id == e[0] else 'false' }}">
+                    <i class="bi bi-key-fill me-1"></i> تغيير كلمة المرور
+                  </button>
+                  {% endif %}
+
                   {% if session.employee_id and session.employee_id == e[0] %}
-                  <form method="post" action="/employees/delete" onsubmit="return confirmSelfDelete(this)" class="d-flex align-items-center gap-2">
+                  <form method="post" action="/employees/delete" onsubmit="return confirmSelfDelete(this)" class="d-flex align-items-center gap-2 m-0">
                     <input type="hidden" name="id" value="{{ e[0] }}" />
                     <input type="number" name="confirm_id" class="form-control form-control-sm" style="width: 80px;" placeholder="ID" required />
                     <input type="password" name="confirm_password" class="form-control form-control-sm" style="width: 100px;" placeholder="كلمة السر" required />
@@ -111,9 +136,9 @@
                   </form>
                   {% else %}
                   {% if session.employee_role == 'manager' %}
-                  <form method="post" action="/employees/delete">
+                  <form method="post" action="/employees/delete" class="m-0">
                     <input type="hidden" name="id" value="{{ e[0] }}" />
-                    <button class="btn btn-outline-danger btn-sm" type="submit" onclick="return confirm('هل أنت متأكد من حذف هذا الموظف؟');">
+                    <button class="btn btn-outline-danger btn-sm text-nowrap" type="submit" onclick="return confirm('هل أنت متأكد من حذف هذا الموظف؟');">
                       <i class="bi bi-trash me-1"></i> حذف
                     </button>
                   </form>
@@ -130,7 +155,115 @@
   </div>
 </div>
 
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-white border border-secondary shadow-lg rounded-4">
+      <div class="modal-header border-secondary py-3">
+        <h5 class="modal-title text-warning fw-bold d-flex align-items-center gap-2" id="changePasswordModalLabel">
+          <i class="bi bi-shield-lock-fill"></i> تغيير كلمة المرور: <span id="pwdModalEmpName" class="text-white"></span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{{ url_for('employee.employees_change_password') }}">
+        <input type="hidden" name="employee_id" id="pwdModalEmpIdInput" />
+        <div class="modal-body p-4" dir="rtl">
+          <div class="mb-3 text-center">
+            <span id="pwdModalEmpBadge" class="badge bg-secondary px-3 py-2 fs-6">ID: #1</span>
+          </div>
+
+          <div class="mb-3" id="currentPasswordDiv" style="display: none;">
+            <label class="form-label text-secondary fw-semibold small">كلمة المرور الحالية *</label>
+            <div class="position-relative">
+              <input type="password" name="current_password" id="modalCurrentPwd" class="form-control bg-dark text-white border-secondary" placeholder="أدخل كلمة المرور الحالية للتأكيد" style="padding-left: 2.75rem; padding-right: 1rem;" />
+              <button type="button" class="btn btn-link position-absolute top-50 translate-middle-y text-secondary text-decoration-none" onclick="togglePwdField('modalCurrentPwd', this)" style="left: 0.65rem; right: auto; padding: 0.4rem; z-index: 5;" title="إظهار / إخفاء">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small">كلمة المرور الجديدة *</label>
+            <div class="position-relative">
+              <input type="password" name="new_password" id="modalNewPwd" class="form-control bg-dark text-white border-secondary" placeholder="أدخل كلمة المرور الجديدة" required minlength="4" style="padding-left: 2.75rem; padding-right: 1rem;" autocomplete="new-password" />
+              <button type="button" class="btn btn-link position-absolute top-50 translate-middle-y text-secondary text-decoration-none" onclick="togglePwdField('modalNewPwd', this)" style="left: 0.65rem; right: auto; padding: 0.4rem; z-index: 5;" title="إظهار / إخفاء">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold small">تأكيد كلمة المرور الجديدة *</label>
+            <div class="position-relative">
+              <input type="password" name="confirm_password" id="modalConfirmPwd" class="form-control bg-dark text-white border-secondary" placeholder="أعد إدخال كلمة المرور الجديدة" required minlength="4" style="padding-left: 2.75rem; padding-right: 1rem;" autocomplete="new-password" />
+              <button type="button" class="btn btn-link position-absolute top-50 translate-middle-y text-secondary text-decoration-none" onclick="togglePwdField('modalConfirmPwd', this)" style="left: 0.65rem; right: auto; padding: 0.4rem; z-index: 5;" title="إظهار / إخفاء">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">إلغاء</button>
+          <button type="submit" class="btn btn-warning fw-bold px-4">
+            <i class="bi bi-check-circle me-1"></i> حفظ كلمة المرور
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
+  function togglePwdField(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('bi-eye');
+      icon.classList.add('bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('bi-eye-slash');
+      icon.classList.add('bi-eye');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const pwdModal = document.getElementById('changePasswordModal');
+    if (pwdModal) {
+      pwdModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        if (!button) return;
+        const empId = button.getAttribute('data-id');
+        const empName = button.getAttribute('data-name');
+        const isSelf = button.getAttribute('data-is-self') === 'true';
+        const isManager = {{ 'true' if session.employee_role == 'manager' else 'false' }};
+
+        document.getElementById('pwdModalEmpIdInput').value = empId || '';
+        document.getElementById('pwdModalEmpName').textContent = empName || '';
+        document.getElementById('pwdModalEmpBadge').textContent = 'ID: #' + (empId || '');
+        document.getElementById('modalNewPwd').value = '';
+        document.getElementById('modalConfirmPwd').value = '';
+
+        const currentPwdDiv = document.getElementById('currentPasswordDiv');
+        const currentPwdInput = document.getElementById('modalCurrentPwd');
+        if (!isManager && isSelf) {
+          if (currentPwdDiv) currentPwdDiv.style.display = 'block';
+          if (currentPwdInput) {
+            currentPwdInput.required = true;
+            currentPwdInput.value = '';
+          }
+        } else {
+          if (currentPwdDiv) currentPwdDiv.style.display = 'none';
+          if (currentPwdInput) {
+            currentPwdInput.required = false;
+            currentPwdInput.value = '';
+          }
+        }
+      });
+    }
+  });
+
   function confirmSelfDelete(form) {
     try {
       const hiddenId = form.querySelector('input[name="id"]').value;

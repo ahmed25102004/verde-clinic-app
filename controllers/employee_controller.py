@@ -129,6 +129,75 @@ def normalize_input(text):
         text = text.replace(a, e)
     return text.strip()
 
+@employee_bp.route("/employees/change_password", methods=["POST"])
+@login_required
+def employees_change_password():
+    current_id = session.get("employee_id")
+    current_role = session.get("employee_role")
+
+    emp_id_str = normalize_input(request.form.get("employee_id"))
+    new_pwd = (request.form.get("new_password") or "").strip()
+    confirm_pwd = (request.form.get("confirm_password") or "").strip()
+    current_pwd = (request.form.get("current_password") or "").strip()
+
+    if not emp_id_str:
+        flash("معرف الموظف غير محدد", "danger")
+        return redirect(url_for("employee.employees"))
+
+    try:
+        eid = int(emp_id_str)
+    except ValueError:
+        flash("معرف الموظف غير صالح", "danger")
+        return redirect(url_for("employee.employees"))
+
+    # Permission check: must be manager OR changing own password
+    if current_role != "manager" and current_id != eid:
+        flash("غير مصرح لك بتغيير كلمة مرور موظف آخر", "danger")
+        return redirect(url_for("employee.employees"))
+
+    if not new_pwd:
+        flash("يرجى إدخال كلمة المرور الجديدة", "danger")
+        return redirect(url_for("employee.employees"))
+
+    if len(new_pwd) < 4:
+        flash("كلمة المرور يجب أن تكون 4 أحرف/أرقام على الأقل", "danger")
+        return redirect(url_for("employee.employees"))
+
+    if new_pwd != confirm_pwd:
+        flash("تأكيد كلمة المرور غير متطابق مع كلمة المرور الجديدة", "danger")
+        return redirect(url_for("employee.employees"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, password_hash, role FROM employees WHERE id = ?", (eid,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        flash("الموظف غير موجود بالنظام", "danger")
+        return redirect(url_for("employee.employees"))
+
+    # If non-manager changing their own password, verify current password
+    if current_role != "manager":
+        if not current_pwd or not row[2] or not check_password_hash(row[2], current_pwd):
+            conn.close()
+            flash("كلمة المرور الحالية غير صحيحة", "danger")
+            return redirect(url_for("employee.employees"))
+
+    new_hash = generate_password_hash(new_pwd)
+    cur.execute("UPDATE employees SET password_hash = ? WHERE id = ?", (new_hash, eid))
+    try:
+        cur.execute(
+            "INSERT INTO auth_logs(employee_id, ip, action, success, timestamp) VALUES(?,?,?,?,?)",
+            (current_id, get_client_ip(), f"change_password_for_emp_{eid}", 1, datetime.now().isoformat())
+        )
+    except Exception:
+        pass
+    conn.commit()
+    conn.close()
+
+    flash(f"تم تغيير كلمة المرور للموظف '{row[1]}' بنجاح", "success")
+    return redirect(url_for("employee.employees"))
+
 @employee_bp.route("/login", methods=["GET", "POST"])
 def login():
     error = None
