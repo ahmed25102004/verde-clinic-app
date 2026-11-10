@@ -23,11 +23,11 @@ else:
 def get_conn():
     conn = sqlite3.connect(DB_PATH, timeout=30.0, check_same_thread=False)
     try:
-        conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         conn.execute("PRAGMA busy_timeout=30000;")
         conn.execute("PRAGMA temp_store=MEMORY;")
-        conn.execute("PRAGMA cache_size=-64000;")
+        conn.execute("PRAGMA cache_size=-32000;")
+        conn.execute("PRAGMA mmap_size=268435456;")
         conn.execute("PRAGMA foreign_keys=ON;")
     except Exception:
         pass
@@ -35,8 +35,18 @@ def get_conn():
     return conn
 
 
-def init_db():
+_db_initialized = False
+
+def init_db(force=False):
+    global _db_initialized
+    if _db_initialized and not force:
+        return
+
     conn = get_conn()
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+    except Exception:
+        pass
     cur = conn.cursor()
 
     # Create tables if not exist
@@ -337,7 +347,13 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_bookings_next_session ON bookings(next_session_date);",
         "CREATE INDEX IF NOT EXISTS idx_downtimes_day_res ON downtimes(day, resource_type, resource_id);",
         "CREATE INDEX IF NOT EXISTS idx_doctor_rooms_doc ON doctor_rooms(doctor_id);",
-        "CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);"
+        "CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);",
+        "CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);",
+        "CREATE INDEX IF NOT EXISTS idx_packages_category ON packages(category, is_active);",
+        "CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);",
+        "CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);",
+        "CREATE INDEX IF NOT EXISTS idx_calendar_bookings_status ON calendar_bookings(status);",
+        "CREATE INDEX IF NOT EXISTS idx_calendar_bookings_cust_phone ON calendar_bookings(customer_name, phone);"
     ]
     for idx_sql in indexes:
         try:
@@ -351,6 +367,7 @@ def init_db():
     seed_packages()
     seed_default_employee()
     seed_reservation_defaults()
+    _db_initialized = True
 
 
 def seed_reservation_defaults():

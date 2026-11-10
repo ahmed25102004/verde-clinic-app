@@ -41,74 +41,100 @@ def employees():
     conn.close()
     return render_template("employees.html", employees=employees_list, error=error)
 
-@employee_bp.route("/employees/delete", methods=["POST"])
+@employee_bp.route("/employees/delete", methods=["GET", "POST"])
 @login_required
 def employees_delete():
+    if request.method == "GET":
+        return redirect(url_for("employee.employees"))
+
     emp_id = request.form.get("id")
     if not emp_id:
+        flash("معرف الموظف غير محدد", "danger")
         return redirect(url_for("employee.employees"))
     try:
         eid = int(emp_id)
     except ValueError:
+        flash("معرف الموظف غير صالح", "danger")
         return redirect(url_for("employee.employees"))
 
     current_id = session.get("employee_id")
     role = session.get("employee_role")
 
+    if eid != current_id and role != "manager":
+        flash("غير مصرح لك بحذف هذا الحساب", "danger")
+        return redirect(url_for("employee.employees"))
+
     conn = get_conn()
     cur = conn.cursor()
 
-    if eid != current_id and role != "manager":
-        try:
-            cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', 
-                        (current_id, request.remote_addr or 'unknown', 'delete_account', 0, datetime.now().isoformat()))
-            conn.commit()
-        except Exception:
-            pass
+    cur.execute("SELECT id, name, role FROM employees WHERE id = ?", (eid,))
+    target_emp = cur.fetchone()
+    if not target_emp:
         conn.close()
-        return ("Unauthorized Access", 401)
+        flash("الموظف غير موجود بالفعل", "warning")
+        return redirect(url_for("employee.employees"))
+
+    # Prevent deleting the last/only manager in the system
+    if target_emp[2] == "manager":
+        cur.execute("SELECT COUNT(*) FROM employees WHERE role = 'manager'")
+        m_count = cur.fetchone()[0]
+        if m_count <= 1:
+            conn.close()
+            flash("لا يمكن حذف حساب المدير الوحيد للنظام لمنع قفل النظام بالكامل", "danger")
+            return redirect(url_for("employee.employees"))
 
     if eid == current_id:
         confirm_id = request.form.get("confirm_id")
         confirm_pwd = request.form.get("confirm_password")
         if not confirm_id or not confirm_pwd:
-            cur.execute("SELECT id,name,role FROM employees ORDER BY id DESC")
-            employees_list = cur.fetchall()
             conn.close()
-            error = "بيانات غير صحيحة، لا يمكن حذف الحساب"
-            return render_template("employees.html", employees=employees_list, error=error)
+            flash("يرجى إدخال الـ ID وكلمة المرور لتأكيد حذف حسابك", "danger")
+            return redirect(url_for("employee.employees"))
         try:
             confirm_eid = int(confirm_id)
         except ValueError:
-            cur.execute("SELECT id,name,role FROM employees ORDER BY id DESC")
-            employees_list = cur.fetchall()
             conn.close()
-            error = "بيانات غير صحيحة، لا يمكن حذف الحساب"
-            return render_template("employees.html", employees=employees_list, error=error)
+            flash("معرف التأكيد غير صالح", "danger")
+            return redirect(url_for("employee.employees"))
+
         if confirm_eid != current_id:
-            cur.execute("SELECT id,name,role FROM employees ORDER BY id DESC")
-            employees_list = cur.fetchall()
             conn.close()
-            error = "بيانات غير صحيحة، لا يمكن حذف الحساب"
-            return render_template("employees.html", employees=employees_list, error=error)
-        cur.execute("SELECT password_hash FROM employees WHERE id=?", (current_id,))
+            flash("معرف التأكيد لا يطابق حسابك الحالي", "danger")
+            return redirect(url_for("employee.employees"))
+
+        cur.execute("SELECT password_hash FROM employees WHERE id = ?", (current_id,))
         row = cur.fetchone()
         if not row or not row[0] or not check_password_hash(row[0], confirm_pwd):
-            cur.execute("SELECT id,name,role FROM employees ORDER BY id DESC")
-            employees_list = cur.fetchall()
             conn.close()
-            error = "كلمة المرور غير صحيحة"
-            return render_template("employees.html", employees=employees_list, error=error)
+            flash("كلمة المرور غير صحيحة، لا يمكن حذف الحساب", "danger")
+            return redirect(url_for("employee.employees"))
 
-    cur.execute("DELETE FROM employees WHERE id=?", (eid,))
-    cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', 
-                (current_id, request.remote_addr or 'unknown', 'delete_account', 1, datetime.now().isoformat()))
-    conn.commit()
-    conn.close()
+    try:
+        # Safely detach foreign keys to preserve financial & medical records
+        cur.execute("UPDATE payments SET employee_id = NULL WHERE employee_id = ?", (eid,))
+        cur.execute("UPDATE expenses SET employee_id = NULL WHERE employee_id = ?", (eid,))
+        cur.execute("UPDATE bookings SET employee_id = NULL WHERE employee_id = ?", (eid,))
+        cur.execute("UPDATE sessions SET employee_id = NULL WHERE employee_id = ?", (eid,))
+        cur.execute("DELETE FROM employees WHERE id = ?", (eid,))
+        try:
+            cur.execute('INSERT INTO auth_logs(employee_id,ip,action,success,timestamp) VALUES(?,?,?,?,?)', 
+                        (current_id, get_client_ip(), f'delete_account_{eid}', 1, datetime.now().isoformat()))
+        except Exception:
+            pass
+        conn.commit()
+        conn.close()
+        flash(f"تم حذف حساب الموظف '{target_emp[1]}' بنجاح", "success")
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        flash(f"حدث خطأ أثناء محاولة حذف الموظف: {str(e)}", "danger")
+        return redirect(url_for("employee.employees"))
+
     if eid == current_id:
         session.clear()
         return redirect(url_for("employee.login"))
     return redirect(url_for("employee.employees"))
+
 
 def get_client_ip():
     if request.headers.get("CF-Connecting-IP"):

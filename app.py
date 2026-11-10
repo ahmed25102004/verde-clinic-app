@@ -4,6 +4,7 @@ import time
 import shutil
 import threading
 import requests
+import gzip
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session
 
@@ -46,6 +47,29 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(days=30)
 )
 
+
+@app.after_request
+def optimize_response(response):
+    # Enable aggressive caching for static assets
+    if request.path.startswith('/static'):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        return response
+
+    # Dynamic Gzip compression for text, html, json, javascript, svg
+    accept_encoding = request.headers.get('Accept-Encoding', '')
+    if 'gzip' in accept_encoding.lower() and 200 <= response.status_code < 300 and 'Content-Encoding' not in response.headers:
+        content_type = response.headers.get('Content-Type', '')
+        compressible_types = ('text/', 'application/json', 'application/javascript', 'image/svg+xml')
+        if any(ct in content_type for ct in compressible_types):
+            data = response.get_data()
+            if len(data) >= 500:
+                compressed_data = gzip.compress(data, compresslevel=6)
+                response.set_data(compressed_data)
+                response.headers['Content-Encoding'] = 'gzip'
+                response.headers['Content-Length'] = len(compressed_data)
+                response.headers['Vary'] = 'Accept-Encoding'
+
+    return response
 
 @app.template_filter('whatsapp_phone')
 def whatsapp_phone_filter(phone):
@@ -158,24 +182,48 @@ def whatsapp_background_agent():
         time.sleep(3600)
 
 
+_public_signup_cached = None
+_last_public_signup_check = 0
+
 @app.context_processor
 def inject_global_vars():
     res = {'allow_public_signup': False, 'unread_count': 0, 'notifications': []}
     if request.path.startswith('/static'):
         return res
+
+    global _public_signup_cached, _last_public_signup_check
+    now_ts = time.time()
+
+    # For unauthenticated requests (e.g. login page), avoid hitting the DB on every single hit
+    if not session.get('employee_id'):
+        if _public_signup_cached is None or (now_ts - _last_public_signup_check > 60):
+            conn = None
+            try:
+                conn = get_conn()
+                cur = conn.cursor()
+                cur.execute('SELECT COUNT(*) FROM employees')
+                cnt = cur.fetchone()[0]
+                _public_signup_cached = (cnt == 0)
+                _last_public_signup_check = now_ts
+            except Exception:
+                _public_signup_cached = False
+            finally:
+                if conn:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+        res['allow_public_signup'] = _public_signup_cached
+        return res
+
     conn = None
     try:
         conn = get_conn()
         cur = conn.cursor()
-        cur.execute('SELECT COUNT(*) FROM employees')
-        cnt = cur.fetchone()[0]
-        res['allow_public_signup'] = (cnt == 0)
-
-        if session.get('employee_id'):
-            cur.execute('SELECT COUNT(*) FROM notifications WHERE is_read = 0')
-            res['unread_count'] = cur.fetchone()[0]
-            cur.execute('SELECT id, message, type, created_at FROM notifications ORDER BY created_at DESC LIMIT 5')
-            res['notifications'] = cur.fetchall()
+        cur.execute('SELECT COUNT(*) FROM notifications WHERE is_read = 0')
+        res['unread_count'] = cur.fetchone()[0]
+        cur.execute('SELECT id, message, type, created_at FROM notifications ORDER BY created_at DESC LIMIT 5')
+        res['notifications'] = cur.fetchall()
     except Exception:
         pass
     finally:
@@ -185,6 +233,8 @@ def inject_global_vars():
             except Exception:
                 pass
     return res
+
+
 
 
 # ------------------------------
@@ -256,29 +306,32 @@ if 'reservations.booking_sms' in app.view_functions:
 @app.route("/")
 def index():
     if not session.get("employee_id"):
-        try:
-            conn = get_conn()
-            cur = conn.cursor()
-            cur.execute('SELECT COUNT(*) FROM employees')
-            cnt = cur.fetchone()[0]
-            conn.close()
-            if cnt == 0:
-                return redirect(url_for("signup"))
-        except Exception:
-            pass
         return redirect(url_for("login"))
 
-    cosmetic_sessions = Package.find_by_category("cosmetic_sessions")
-    cosmetic_packages = Package.find_by_category("cosmetic_packages")
-    laser_sessions = Package.find_by_category("laser_sessions")
-    laser_packages = Package.find_by_category("laser_packages")
-    pulse_packages = Package.find_by_category("pulse_packages")
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT id, category, name, price FROM packages WHERE (is_active = 1 OR is_active IS NULL) ORDER BY id DESC")
+    all_packages = cur.fetchall()
+    conn.close()
+
+    packages_by_cat = {
+        "cosmetic_sessions": [],
+        "cosmetic_packages": [],
+        "laser_sessions": [],
+        "laser_packages": [],
+        "pulse_packages": []
+    }
+    for p in all_packages:
+        cat = p["category"]
+        if cat in packages_by_cat:
+            packages_by_cat[cat].append((p["id"], p["name"], p["price"]))
+
     return render_template("index.html", 
-                         cosmetic_sessions=[(p['id'], p['name'], p['price']) for p in cosmetic_sessions],
-                         cosmetic_packages=[(p['id'], p['name'], p['price']) for p in cosmetic_packages],
-                         laser_sessions=[(p['id'], p['name'], p['price']) for p in laser_sessions],
-                         laser_packages=[(p['id'], p['name'], p['price']) for p in laser_packages],
-                         pulse_packages=[(p['id'], p['name'], p['price']) for p in pulse_packages])
+                         cosmetic_sessions=packages_by_cat["cosmetic_sessions"],
+                         cosmetic_packages=packages_by_cat["cosmetic_packages"],
+                         laser_sessions=packages_by_cat["laser_sessions"],
+                         laser_packages=packages_by_cat["laser_packages"],
+                         pulse_packages=packages_by_cat["pulse_packages"])
 
 
 if __name__ == "__main__":
